@@ -14,9 +14,9 @@ DIGIT [0-9]
 ALPHA [a-zA-Z_]
 ALPHANUM ({ALPHA}|{DIGIT})
 HEX [a-fA-F0-9]
-EXP [Ee][+-]?{DIGIT}+
+EXP [eE][+-]?{DIGIT}+
 FS (f|F|l|L)     
-IS (u|U|l|L)*  
+IS (ul|uL|Ul|UL|lu|lU|Lu|LU|U|u|l|L) 
 WS [ \t\v\n\f]
 
 
@@ -58,18 +58,15 @@ WS [ \t\v\n\f]
 
 
 {ALPHA}({ALPHANUM})*                { row_column(); return (IDENTIFIER);}
-
-{DIGIT}+                            { row_column(); return (CONSTANT);}
+{DIGIT}+{IS}?                       { row_column(); return (CONSTANT);}
 0[xX]{HEX}+{IS}?	                { row_column(); return (CONSTANT);}
-0{DIGIT}+{IS}?		                { row_column(); return (CONSTANT);}
-{DIGIT}+{IS}?                       { row_column(); return (CONSTANT);}  
-{ALPHA}?'(\\.|[^\\'])+'	            { row_column(); return (CONSTANT);}
-
-{DIGIT}+{EXP}{FS}?                  { row_column(); return (CONSTANT);}
-{DIGIT}*"."{DIGIT}+({EXP})?{FS}?    { row_column(); return (CONSTANT);}
-{DIGIT}+"."{DIGIT}*({EXP})?{FS}?    { row_column(); return (CONSTANT);}
-
-{ALPHA}?\"(\\.|[^\\"])*\"	                { row_column(); return(STRING_VAL);}
+{DIGIT}+{EXP}({IS})?                { row_column(); return (CONSTANT);}
+{DIGIT}*"."{DIGIT}+{EXP}({FS})?     { row_column(); return (CONSTANT);}
+{DIGIT}*"."{DIGIT}+({FS})?          { row_column(); return (CONSTANT);}
+{DIGIT}+"."({EXP}){FS}?             { row_column(); return (CONSTANT);}
+{DIGIT}+"."{FS}?                    { row_column(); return (CONSTANT);}
+\'(\\.|[^\\'])+\'	                { row_column(); return (CONSTANT);}
+\"(\\.|[^\\"])*\"	                { row_column(); return(STRING_VAL);}
 
 "+="               { row_column(); return (ADD_ASSIGNMENT);         }     
 "-="               { row_column(); return (SUBTRACT_ASSIGNMENT);    }
@@ -123,18 +120,17 @@ int error(){
     return (0);
 }
 
-int line = 1;
-int column = 0;
-
 int yywrap(){
     return (1);
 } 
+
+int line = 1;
+int column = 0;
  
 
-int len = 0;
+int curr_length = 0;
 void row_column(){
     int i;
-
     for(i= 0 ; yytext[i]!='\0'; i++){
         if(yytext[i] == '\n'){
             column = 0;
@@ -149,7 +145,7 @@ void row_column(){
             column += 1;
         }
     }
-    len = i;
+    curr_length = i;
 }
 
 int main(int argc, char** argv){
@@ -236,8 +232,9 @@ int main(int argc, char** argv){
             
            printf("	%s 		", yytext);
            printf(" %d              ", line);
-           printf(" %d \n", column - len + 1 );
+           printf(" %d \n", column - curr_length + 1 );
     }
     return (0);
 }
+
 
