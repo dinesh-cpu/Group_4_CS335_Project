@@ -5,10 +5,14 @@ This is the compiler designed by group-4 for the course CS335 under Prof. Amey K
 ## Milestone-1 (Scanner)
 
 Steps to run scanner: 
-	1. cd src
-     	2. make
-     	3. cd ..
-     	4. ./bin/lexer ./tests/test1.cpp
+```bash
+$ 1. cd src
+$ 2. make
+$ 3. cd ..
+$ 4. ./bin/lexer ./tests/test1.cpp
+```
 
 To clean the executables run:
-	make clean
+```bash
+$ make clean
+```
