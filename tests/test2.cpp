@@ -1,21 +1,43 @@
-int main(){
-  int a = 5 + 2;
-  float a = 5 + 2.0;
-  int b = 5-2;
-  int c = 34*23;
-  int d = 9090/32;
-  a++;
-  a--;
-  int e;
-  scanf("%d",  &e);
-  if( a == 7){
-    printf("equal comparison\n");
-    if(1){
-      printf("nested if\n");
+int main()
+{
+
+    // this is the one line comment
+    /* this is the
+    multiple line comment
+    */
+    int i = 0, j;
+    int c = 10;
+    int a = 10;
+    int b = 100;
+    int c = 1000;
+    switch (c)
+    {
+    case 1:
+        a--;
+        break;
+
+    case 2:
+        a + b;
+        break;
+
+    default:
+        c++;
     }
-  } 
-  if( a <= 10) printf("less than comparison'n");
-  if( (a==5) || (a=7)) printf("or\n");
-  int e = 2 >> 1;
-  return 0;
+
+    if (i == 0 && i == 10)
+    {
+        if (j == 10)
+        {
+            i = 10;
+        }
+        j = 10;
+    }
+    else
+    {
+        j = 100;
+    }
+    for (j = 0; j < 10; j++)
+    {
+        i++;
+    }
 }
