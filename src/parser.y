@@ -29,11 +29,11 @@ int yyparse();
 %type<Str> relational_expression equality_expression and_expression exclusive_or_expression
 %type<Str> inclusive_or_expression logical_and_expression logical_or_expression 
 %type<Str> conditional_expression assignment_expression assignment_operator expression
-%type<Str> init_declarator_list init_declarator constant_expression 
+%type<Str> init_declarator_list init_declarator constant_expression printf_stmt printf_helper scanf_helper scanf_stmt
 %type<Str> initializer initializer_list statement labeled_statement compound_statement statement_list
 %type<Str> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
 
-%type<Str> storage_class_specifier type_specifier declaration_specifiers struct_ struct_specifier
+%type<Str> storage_class_specifier type_specifier declaration_specifiers struct_ struct_specifier printf_ scanf_
 %type<Str> declaration type_qualifier specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
 %type<Str> declaration_list declarator struct_declaration struct_declaration_list struct_declarator pointer type_qualifier_list
 %type<Str> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
@@ -357,7 +357,9 @@ statement
 	| expression_statement			
 	| selection_statement			
 	| iteration_statement			
-	| jump_statement			
+	| jump_statement
+	| printf_stmt	
+	| scanf_stmt		
 	;
  
 
@@ -402,6 +404,28 @@ stmt
 	| statement									
 	;
  
+printf_stmt
+	: printf_ '(' STRING_VAL ')' ';' statement
+	| printf_ '(' STRING_VAL ',' printf_helper ')' ';' statement
+
+printf_helper
+	: IDENTIFIER
+	| IDENTIFIER ','
+	| IDENTIFIER '[' CONSTANT ']' 
+	| IDENTIFIER '[' CONSTANT ']' ','
+
+printf_	
+	: PRINTF 
+
+scanf_stmt
+	: scanf_ '(' STRING_VAL ',' scanf_helper ')' ';' statement
+
+scanf_helper
+	: '&' IDENTIFIER
+	| '&' IDENTIFIER ','
+
+scanf_ 
+	: SCANF
 
 iteration_statement 
 	: WHILE '(' expression ')' statement											
@@ -420,7 +444,7 @@ jump_statement
 
 translation_unit
 	: external_declaration                   
-	| translation_unit external_declaration  
+	| translation_unit external_declaration
 
 external_declaration
 	: function_definition		
@@ -433,6 +457,14 @@ function_definition
 	| declarator declaration_list compound_statement						 
 	| declarator compound_statement											 
 	;
+
+// printf_cont
+// 	: '%' 'd'
+// 	| '%' 'f'
+// 	| '%' 'u'
+// 	| '%' 's'
+
+
 
 %%
 
