@@ -20,7 +20,7 @@ int yyparse();
 %token<Str> BOOL CHAR SHORT INT LONG SIGNED UNSIGNED STRING FLOAT DOUBLE VOID CONSTANT 
 %token<Str> STRUCT 
 %token<Str> CONST
-%token<Str> TYPEDEF AUTO  USING  
+%token<Str> TYPEDEF AUTO 
 %token<Str> CASE CONTINUE DEFAULT BREAK DELETE DO 
 %token<Str> NEW FOR IF  ELSE GOTO RETURN
 %token<Str> SWITCH WHILE  SIZEOF SCANF PRINTF 
@@ -29,7 +29,7 @@ int yyparse();
 %type<Str> relational_expression equality_expression and_expression exclusive_or_expression
 %type<Str> inclusive_or_expression logical_and_expression logical_or_expression 
 %type<Str> conditional_expression assignment_expression assignment_operator expression
-%type<Str> init_declarator_list init_declarator constant_expression printf_stmt printf_helper scanf_helper scanf_stmt
+%type<Str> init_declarator_list init_declarator constant_expression printf_stmt printf_helper scanf_helper scanf_stmt new_stmt delete_stmt declerator_statement_suffix
 %type<Str> initializer initializer_list statement labeled_statement compound_statement statement_list
 %type<Str> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
 
@@ -86,11 +86,9 @@ unary_operator
 	| '-'			
 	| '~'			
 	| '!'	
-	| NEW
-	| DELETE		
 	;
 
- cast_expression
+cast_expression
  	: unary_expression													
  	| '(' type_name ')' cast_expression	    	           
  	;
@@ -184,8 +182,8 @@ constant_expression
 	;
 
 declaration					
-	: declaration_specifiers ';'						
-	| declaration_specifiers init_declarator_list ';'  
+	: declaration_specifiers ';'	declerator_statement_suffix					
+	| declaration_specifiers init_declarator_list ';'  declerator_statement_suffix
 	;
 
 declaration_specifiers						
@@ -203,7 +201,8 @@ init_declarator_list
 	;
 
 init_declarator					
-	: declarator                 
+	: declarator   
+	// | pointer direct_declarator '=' new_stmt              
 	| declarator '=' initializer  
 	;
 
@@ -243,7 +242,7 @@ struct_declaration_list
 	;
 
 struct_declaration 			
-	: specifier_qualifier_list struct_declarator_list ';'	
+	: specifier_qualifier_list struct_declarator_list ';' 
 	;
 
 specifier_qualifier_list		
@@ -341,7 +340,8 @@ direct_abstract_declarator
 	;
 
 initializer
-	: assignment_expression			
+	: assignment_expression		
+	| new_stmt
 	| '{' initializer_list '}'		
 	| '{' initializer_list ',' '}'  
 	;
@@ -359,9 +359,15 @@ statement
 	| iteration_statement			
 	| jump_statement
 	| printf_stmt	
-	| scanf_stmt		
+	| scanf_stmt	
+	| delete_stmt
+	// | declaration
 	;
- 
+
+declerator_statement_suffix 
+   : statement
+   | declaration
+   ;
 
 
 labeled_statement
@@ -396,17 +402,27 @@ expression_statement
 
 selection_statement
 	: IF '(' expression ')' statement stmt 
-	| SWITCH '(' expression ')' statement	  
+	| SWITCH '(' expression ')' statement 	  
 	;
 
 stmt
 	: ELSE statement 	
-	| statement									
+	| declerator_statement_suffix									
+	;
+
+new_stmt
+    : NEW type_specifier '[' CONSTANT ']'
+	| NEW type_specifier 
+	;
+
+delete_stmt
+    : DELETE IDENTIFIER ';' declerator_statement_suffix
+	| DELETE '[' ']' IDENTIFIER ';' declerator_statement_suffix
 	;
  
 printf_stmt
-	: printf_ '(' STRING_VAL ')' ';' statement
-	| printf_ '(' STRING_VAL ',' printf_helper ')' ';' statement
+	: printf_ '(' STRING_VAL ')' ';' declerator_statement_suffix
+	| printf_ '(' STRING_VAL ',' printf_helper ')' ';' declerator_statement_suffix
 
 printf_helper
 	: IDENTIFIER
@@ -418,7 +434,7 @@ printf_
 	: PRINTF 
 
 scanf_stmt
-	: scanf_ '(' STRING_VAL ',' scanf_helper ')' ';' statement
+	: scanf_ '(' STRING_VAL ',' scanf_helper ')' ';' declerator_statement_suffix
 
 scanf_helper
 	: '&' IDENTIFIER
@@ -429,9 +445,9 @@ scanf_
 
 iteration_statement 
 	: WHILE '(' expression ')' statement											
-	| DO statement WHILE '(' expression ')' ';'										
-	| FOR '(' expression_statement  expression_statement ')' statement				
-	| FOR '(' expression_statement expression_statement expression ')' statement	
+	| DO statement WHILE '(' expression ')' ';'	declerator_statement_suffix								
+	| FOR '(' expression_statement  expression_statement ')' 				
+	| FOR '(' expression_statement expression_statement expression ')' 	
 	;
 
 

@@ -24,7 +24,7 @@ $ make clean
 Steps to run parser:
 ```bash
 $ 1. cd src
-$ 2. make
+$ 2. make all
 $ 3. cd ..
 $ 4. ./bin/parser ./tests/test1.cpp
 ```
