@@ -8,6 +8,10 @@ int yyerror(char*);
 int yylex();
 void comment();
 void single_comment();
+int line = 1;
+int column = 0;
+int curr_length = 0;
+int line_buff = 0;
 %}
 
 DIGIT [0-9]
@@ -117,9 +121,6 @@ WS [ \t\v\n\f]
 int yywrap(){
     return (1);
 } 
-
-int line = 1;
-int column = 0;
  
 void comment()
 {
@@ -144,13 +145,14 @@ void single_comment()
 }
 
 
-int curr_length = 0;
+
 void row_column(){
     int i;
     for(i= 0 ; yytext[i]!='\0'; i++){
         if(yytext[i] == '\n'){
             column = 0;
             line += 1;
+            line_buff = 1;
         }
         else if(yytext[i] == '\t'){
             int extra_space = column%4;
@@ -159,6 +161,7 @@ void row_column(){
         }
         else{
             column += 1;
+            line_buff = 0;
         }
     }
     curr_length = i;
