@@ -38,7 +38,7 @@ extern int line_buff;
 %type<Node> init_declarator_list init_declarator constant_expression 
 %type<Node> initializer initializer_list statement labeled_statement compound_statement statement_list
 %type<Node> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
-%type<Node> printf_stmt scanf_stmt 
+%type<Node> printf_stmt scanf_stmt new_stmt delete_stmt 
 
 %type<Str> printf_helper scanf_helper
 %type<Str> storage_class_specifier type_specifier declaration_specifiers struct_ struct_specifier 
@@ -191,7 +191,7 @@ constant_expression
 
 declaration					
 	: declaration_specifiers ';'						
-	| declaration_specifiers init_declarator_list ';'  
+	| declaration_specifiers init_declarator_list ';' 	  
 	;
 
 declaration_specifiers						
@@ -348,6 +348,7 @@ direct_abstract_declarator
 
 initializer
 	: assignment_expression				{$$ = $1;}
+	| new_stmt							{$$ = $1;}
 	| '{' initializer_list '}'			{$$ = $2;}	
 	| '{' initializer_list ',' '}'  	{$$ = new_1_node(",", $2);}
 	;
@@ -366,8 +367,8 @@ statement
 	| jump_statement			{$$ = $1;}
 	| printf_stmt			    {$$ = $1;}
 	| scanf_stmt			    {$$ = $1;}
+	| delete_stmt				{$$ = $1;}
 	;
- 
 
 
 labeled_statement
@@ -410,6 +411,17 @@ stmt
 	| statement									{$$=$1;}							
 	;
  
+
+new_stmt
+    : NEW type_specifier '[' CONSTANT ']'		{$$=new_2_node("NEW", new_leaf_node($2), new_leaf_node($4));}
+	| NEW type_specifier 						{$$=new_2_node("NEW", new_leaf_node($2), NULL);}
+	;
+
+delete_stmt
+    : DELETE IDENTIFIER ';' statement			{$$=new_1_node("DELETE", new_leaf_node($2));}
+	| DELETE '[' ']' IDENTIFIER ';' statement	{$$=new_1_node("DELETE", new_leaf_node($2));}
+	;
+
 printf_stmt
 	: PRINTF '(' STRING_VAL ')' ';' statement   					{$$ = new_2_node("PRINTF", new_leaf_node($3), $6);}
 	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' statement		{$$ = new_2_node("PRINTF", new_leaf_node($3), $8);}
