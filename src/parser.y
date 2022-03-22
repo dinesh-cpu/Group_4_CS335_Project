@@ -49,7 +49,7 @@ int yyparse();
 primary_expression
 	: IDENTIFIER 							{$$=new_leaf_node($1);}		
 	| CONSTANT 								{$$=new_leaf_node($1);}
-	| STRING_VAL    						{$$=new_leaf_node($1);}
+	| STRING_VAL    						{$$=new_leaf_node("STRING VAL");}
 	| '(' expression ')'                    {$$=$2;}
 	;
 
@@ -417,8 +417,8 @@ delete_stmt
 	;
 
 printf_stmt
-	: PRINTF '(' STRING_VAL ')' ';' declarator_statement_suffix  						{$$ = new_2_node("PRINTF", new_leaf_node($3), NULL);}
-	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' declarator_statement_suffix  	{$$ = new_2_node("PRINTF", new_leaf_node($3), $5);}
+	: PRINTF '(' STRING_VAL ')' ';' declarator_statement_suffix  						{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);}
+	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' declarator_statement_suffix  		{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);}
 
 printf_helper
 	: IDENTIFIER                                                       			{$$=new_leaf_node($1);}
@@ -428,7 +428,7 @@ printf_helper
     ;
 
 scanf_stmt
-	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' declarator_statement_suffix					{$$ = new_2_node("SCANF", new_leaf_node($3), $5);}
+	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' declarator_statement_suffix					{$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);}
 	;
 
 scanf_helper
@@ -518,6 +518,22 @@ node* new_3_node(char* op, node* node1, node* node2, node* node3){
 	return new;	
 }
 
+node* new_2_Stringval_node(char* op,node* node1,node* node2){
+    node *new=(node *)malloc(sizeof(node));
+    new->child1=node1;
+    new->child2=node2;
+	new->child3=NULL;
+	new->id = NodeId();
+    new->s=(char *)malloc(sizeof(op));
+    strcpy(new->s,op);
+    fprintf(outfile, "\t%lu [label=\"%s\"];\n", new->id, new->s);
+    if(node1)fprintf(outfile, "\t%lu [label=%s];\n", node1->id, node1->s);
+    if(node2)fprintf(outfile, "\t%lu [label=\"%s\"];\n", node2->id, node2->s);
+	if(node1)fprintf(outfile, "\t%lu -> %lu;\n", new->id, node1->id);
+	if(node2)fprintf(outfile, "\t%lu -> %lu;\n", new->id, node2->id);
+    return new;
+}
+
 node* new_2_node(char* op,node* node1,node* node2){
     node *new=(node *)malloc(sizeof(node));
     new->child1=node1;
@@ -558,6 +574,7 @@ node* new_leaf_node(char* val){
     strcpy(new->s,val);
     return new;
 }
+
 
 extern char yytext[];
 extern int column;

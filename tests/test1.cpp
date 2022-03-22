@@ -13,14 +13,11 @@ int main()
     int c = 7;
     string a;
     // arr{10};  will give error here
+    string a = "hello";
     int n = sizeof(arr) / sizeof(arr[0]);
     int *a = new int;
-    if(a){
-        int d;
-    }
-    else{
-        int b;
-    }
+    printf("%d", b);
     Array(arr, n);
+    delete a;
     return 0;
 }
