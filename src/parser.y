@@ -160,7 +160,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression											 {$$ = $1;}									 
-	| unary_expression assignment_operator assignment_expression         {$$ = new_3_node("assignment", $1, $2, $3);}
+	| unary_expression assignment_operator assignment_expression         {make_children($2, $1, $3, NULL); $$ = $2;}
 	;
 
 assignment_operator														
@@ -184,8 +184,8 @@ constant_expression
 	;
 
 declaration					
-	: declaration_specifiers ';'						
-	| declaration_specifiers init_declarator_list ';' 	  
+	: declaration_specifiers ';' declarator_statement_suffix					
+	| declaration_specifiers init_declarator_list ';' declarator_statement_suffix  
 	;
 
 declaration_specifiers						
@@ -402,7 +402,7 @@ selection_statement
 
 stmt
 	: ELSE statement 							{$$ = $2;}
-	| statement									{$$=$1;}							
+	| declarator_statement_suffix				{$$=$1;}							
 	;
  
 
@@ -428,7 +428,7 @@ printf_helper
     ;
 
 scanf_stmt
-	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' statement					{$$ = new_2_node("SCANF", new_leaf_node($3), $5);}
+	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' declarator_statement_suffix					{$$ = new_2_node("SCANF", new_leaf_node($3), $5);}
 	;
 
 scanf_helper
@@ -438,7 +438,7 @@ scanf_helper
 
 iteration_statement 
 	: WHILE '(' expression ')' statement											{$$ = new_2_node("WHILE", $3, $5);}									
-	| DO statement WHILE '(' expression ')' ';'										{$$ = new_2_node("DO-WHILE", $2, $5);}		
+	| DO statement WHILE '(' expression ')' ';'	declarator_statement_suffix			{$$ = new_2_node("DO-WHILE", $2, $5);}		
 	| FOR '(' expression_statement  expression_statement ')' statement				{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, NULL), $6);}	
 	| FOR '(' expression_statement expression_statement expression ')' statement	{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, $5), $7);}
 	;
