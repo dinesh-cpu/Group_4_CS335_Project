@@ -184,8 +184,8 @@ constant_expression
 	;
 
 declaration					
-	: declaration_specifiers ';' declarator_statement_suffix					
-	| declaration_specifiers init_declarator_list ';' declarator_statement_suffix  
+	: declaration_specifiers ';' 				
+	| declaration_specifiers init_declarator_list ';' 
 	;
 
 declaration_specifiers						
@@ -401,8 +401,8 @@ selection_statement
 	;
 
 stmt
-	: ELSE statement 							{$$ = $2;}
-	| declarator_statement_suffix				{$$=$1;}							
+	: ELSE statement declarator_statement_suffix 	{$$ = $2;}
+	| declarator_statement_suffix					{$$=$1;}							
 	;
  
 
@@ -438,7 +438,7 @@ scanf_helper
 
 iteration_statement 
 	: WHILE '(' expression ')' statement											{$$ = new_2_node("WHILE", $3, $5);}									
-	| DO statement WHILE '(' expression ')' ';'	declarator_statement_suffix			{$$ = new_2_node("DO-WHILE", $2, $5);}		
+	| DO statement WHILE '(' expression ')' ';'										{$$ = new_2_node("DO-WHILE", $2, $5);}		
 	| FOR '(' expression_statement  expression_statement ')' statement				{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, NULL), $6);}	
 	| FOR '(' expression_statement expression_statement expression ')' statement	{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, $5), $7);}
 	;

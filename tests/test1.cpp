@@ -15,7 +15,12 @@ int main()
     // arr{10};  will give error here
     int n = sizeof(arr) / sizeof(arr[0]);
     int *a = new int;
+    if(a){
+        int d;
+    }
+    else{
+        int b;
+    }
     Array(arr, n);
-    delete a;
     return 0;
 }
