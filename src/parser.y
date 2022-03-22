@@ -7,10 +7,6 @@ int yyerror(char*);
 extern FILE* yyin;
 int yylex();
 int yyparse();
-extern int line;
-extern int column;
-extern int curr_length;
-extern int line_buff;
 %}
 
 %union{
@@ -38,9 +34,9 @@ extern int line_buff;
 %type<Node> init_declarator_list init_declarator constant_expression 
 %type<Node> initializer initializer_list statement labeled_statement compound_statement statement_list
 %type<Node> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
-%type<Node> printf_stmt scanf_stmt new_stmt delete_stmt 
+%type<Node> printf_stmt scanf_stmt new_stmt delete_stmt declarator_statement_suffix
 
-%type<Str> printf_helper scanf_helper
+%type<Node> printf_helper scanf_helper
 %type<Str> storage_class_specifier type_specifier declaration_specifiers struct_ struct_specifier 
 %type<Str> declaration type_qualifier specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
 %type<Str> declaration_list declarator struct_declaration struct_declaration_list struct_declarator pointer type_qualifier_list
@@ -92,8 +88,6 @@ unary_operator
 	| '-'														{$$ = new_1_node("-", NULL);}
 	| '~'														{$$ = new_1_node("~", NULL);}
 	| '!'														{$$ = new_1_node("!", NULL);}
-	| NEW														{$$ = new_1_node("NEW", NULL);}
-	| DELETE		                                            {$$ = new_1_node("DELETE", NULL);}
 	;
 
  cast_expression
@@ -166,7 +160,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression											 {$$ = $1;}									 
-	| unary_expression assignment_operator assignment_expression         {make_children($2, $1, $3, NULL); $$ = $2;}
+	| unary_expression assignment_operator assignment_expression         {$$ = new_3_node("assignment", $1, $2, $3);}
 	;
 
 assignment_operator														
@@ -418,29 +412,28 @@ new_stmt
 	;
 
 delete_stmt
-    : DELETE IDENTIFIER ';' statement			{$$=new_1_node("DELETE", new_leaf_node($2));}
-	| DELETE '[' ']' IDENTIFIER ';' statement	{$$=new_1_node("DELETE", new_leaf_node($2));}
+    : DELETE IDENTIFIER ';' declarator_statement_suffix			{$$=new_1_node("DELETE", new_leaf_node($2));}
+	| DELETE '[' ']' IDENTIFIER ';' declarator_statement_suffix	{$$=new_1_node("DELETE", new_leaf_node($2));}
 	;
 
 printf_stmt
-	: PRINTF '(' STRING_VAL ')' ';' statement   					{$$ = new_2_node("PRINTF", new_leaf_node($3), $6);}
-	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' statement		{$$ = new_2_node("PRINTF", new_leaf_node($3), $8);}
-	;
+	: PRINTF '(' STRING_VAL ')' ';' declarator_statement_suffix  						{$$ = new_2_node("PRINTF", new_leaf_node($3), NULL);}
+	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' declarator_statement_suffix  	{$$ = new_2_node("PRINTF", new_leaf_node($3), $5);}
 
 printf_helper
-	: IDENTIFIER					
-	| IDENTIFIER ','
-	| IDENTIFIER '[' CONSTANT ']' 
-	| IDENTIFIER '[' CONSTANT ']' ','
+	: IDENTIFIER                                                       			{$$=new_leaf_node($1);}
+	| IDENTIFIER ',' printf_helper                                              {$$ = new_2_node(",", new_leaf_node($1),$3);}
+	| IDENTIFIER '[' CONSTANT ']'                                               {$$ = new_2_node("[]", new_leaf_node($1), new_leaf_node($3));}
+	| IDENTIFIER '[' CONSTANT ']' ',' printf_helper                             {$$ = new_3_node("[]",new_leaf_node($1),new_leaf_node($3),$6);}
     ;
 
 scanf_stmt
-	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' statement
+	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' statement					{$$ = new_2_node("SCANF", new_leaf_node($3), $5);}
 	;
 
 scanf_helper
-	: '&' IDENTIFIER
-	| '&' IDENTIFIER ','
+	: '&' IDENTIFIER                                                                            {$$=new_leaf_node($2);}
+	| '&' IDENTIFIER ','  scanf_helper                                                          {$$ = new_2_node(",", new_leaf_node($2),$4);}
     ;
 
 iteration_statement 
@@ -450,6 +443,9 @@ iteration_statement
 	| FOR '(' expression_statement expression_statement expression ')' statement	{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, $5), $7);}
 	;
 
+declarator_statement_suffix
+	: declaration		{$$=new_leaf_node($1);}
+	| statement			{$$=$1;}
 
 jump_statement
 	: CONTINUE ';'									{$$ = new_leaf_node("CONTINUE");}
@@ -480,7 +476,7 @@ function_definition
 
 
 int yyerror(char *s) {
-       	printf ("Error at line = %d, Error at column = %d, THE  ERROR is : %s\n",line-line_buff, column-curr_length + 1, s);
+       	printf ("THE  ERROR is : %s\n",s);
        	return 0;
 }
 

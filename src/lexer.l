@@ -8,10 +8,6 @@ int yyerror(char*);
 int yylex();
 void comment();
 void single_comment();
-int line = 1;
-int column = 0;
-int curr_length = 0;
-int line_buff = 0;
 %}
 
 DIGIT [0-9]
@@ -121,6 +117,11 @@ WS [ \t\v\n\f]
 int yywrap(){
     return (1);
 } 
+
+int line = 1;
+int column = 0;
+int curr_length = 0;
+int line_buff = 0;
  
 void comment()
 {
@@ -143,7 +144,6 @@ void single_comment()
     while ((c = input()) != '\n' && c != 0);
     line++;
 }
-
 
 
 void row_column(){
