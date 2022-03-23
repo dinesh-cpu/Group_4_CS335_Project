@@ -412,13 +412,13 @@ new_stmt
 	;
 
 delete_stmt
-    : DELETE IDENTIFIER ';' declarator_statement_suffix			{$$=new_1_node("DELETE", new_leaf_node($2));}
-	| DELETE '[' ']' IDENTIFIER ';' declarator_statement_suffix	{$$=new_1_node("DELETE", new_leaf_node($2));}
+    : DELETE IDENTIFIER ';' 		{$$=new_1_node("DELETE", new_leaf_node($2));}
+	| DELETE '[' ']' IDENTIFIER ';' 	{$$=new_1_node("DELETE", new_leaf_node($2));}
 	;
 
 printf_stmt
-	: PRINTF '(' STRING_VAL ')' ';' declarator_statement_suffix  						{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);}
-	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';' declarator_statement_suffix  		{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);}
+	: PRINTF '(' STRING_VAL ')' ';'   						{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);}
+	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';'   		{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);}
 
 printf_helper
 	: IDENTIFIER                                                       			{$$=new_leaf_node($1);}
@@ -428,7 +428,7 @@ printf_helper
     ;
 
 scanf_stmt
-	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' declarator_statement_suffix					{$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);}
+	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' 				{$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);}
 	;
 
 scanf_helper

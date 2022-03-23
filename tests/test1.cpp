@@ -1,34 +1,28 @@
-struct node
+void Array(int arr[], int size)
 {
-    int val;
-    struct node* next;
-};
-
-int main(){
-    struct node* head;
-    struct node* node;
-    int sum;
     int i;
-    head = malloc(sizeof(struct node));
-    head->val = 0;
-    for(i=0; i<10; ++i){
-        struct node* newnode;
-        struct node* node;
-        newnode = malloc(sizeof(struct node));
-        newnode->val = i;
-        newnode->next = 0;
-        node = head;
-        while(node->next){
-            node = node->next;
-        }
-        node->next = newnode;
+    for (i = 0; i < size; i++)
+    {
+        i++;
     }
-    sum = 0;
-    node = head;
-    while(node){
-        sum += node->val;
-        node = node->next;
+}
+
+int main()
+{
+    int arr[] = {10, 7, 8, 9, 1};
+    int c = 7;
+    // arr{10};  will give error here
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int *a = new int;
+    Array(arr, n);
+    printf("hello");
+    a = 2;
+    if(1){
+        int a = 2;
     }
-    
+    delete a;
+    delete b;
     return 0;
 }
+
+// put all declarators at the start of the files
