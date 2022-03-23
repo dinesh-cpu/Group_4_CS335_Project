@@ -20,6 +20,9 @@ int main()
     if(1){
         int a = 2;
     }
+    else{
+        
+    }
     delete a;
     delete b;
     return 0;

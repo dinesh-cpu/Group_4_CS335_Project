@@ -7,6 +7,8 @@ int yyerror(char*);
 extern FILE* yyin;
 int yylex();
 int yyparse();
+
+extern int line;
 %}
 
 %union{
@@ -34,13 +36,13 @@ int yyparse();
 %type<Node> init_declarator_list init_declarator constant_expression 
 %type<Node> initializer initializer_list statement labeled_statement compound_statement statement_list
 %type<Node> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
-%type<Node> printf_stmt scanf_stmt new_stmt delete_stmt declarator_statement_suffix
+%type<Node> printf_stmt scanf_stmt new_stmt delete_stmt
 
 %type<Node> printf_helper scanf_helper
-%type<Str> storage_class_specifier type_specifier declaration_specifiers struct_ struct_specifier 
-%type<Str> declaration type_qualifier specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
-%type<Str> declaration_list declarator struct_declaration struct_declaration_list struct_declarator pointer type_qualifier_list
-%type<Str> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
+%type<Node> storage_class_specifier type_specifier declaration_specifiers struct_specifier 
+%type<Node> declaration type_qualifier specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
+%type<Node> declaration_list declarator struct_declaration struct_declaration_list struct_declarator pointer type_qualifier_list struct_declarator_list
+%type<Node> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
 %start translation_unit
 
 %%
@@ -75,7 +77,7 @@ unary_expression
 	| DECREMENT unary_expression								{$$ = new_1_node("--", $2);}				
 	| unary_operator cast_expression       						{make_children($1, $2, NULL, NULL); $$ = $1;}
 	| SIZEOF unary_expression				                	{$$ = new_1_node("SIZEOF", $2);}
-	| SIZEOF '(' type_name ')'	                                {$$ = new_1_node("SIZEOF", new_leaf_node($3));}
+	| SIZEOF '(' type_name ')'	                                {$$ = new_1_node("SIZEOF", $3);}
 	;                 
 
 
@@ -92,7 +94,7 @@ unary_operator
 
  cast_expression
  	: unary_expression											{$$=$1;}								
- 	| '(' type_name ')' cast_expression							{$$ = new_2_node("CAST_EXPRESSION", new_leaf_node($2), $4);}    	           
+ 	| '(' type_name ')' cast_expression							{$$ = new_2_node("CAST_EXPRESSION", $2, $4);}    	           
  	;
 
 multiplicative_expression
@@ -184,160 +186,157 @@ constant_expression
 	;
 
 declaration					
-	: declaration_specifiers ';' 				
-	| declaration_specifiers init_declarator_list ';' 
+	: declaration_specifiers  ';' 	        {$$=$1;}		
+	| declaration_specifiers init_declarator_list  ';'    {$$ = new_2_node("Declaration", $1, $2);}
 	;
 
+
 declaration_specifiers						
-	: storage_class_specifier						
-	| storage_class_specifier declaration_specifiers
-	| type_specifier								
-	| type_specifier declaration_specifiers			
-	| type_qualifier								
-	| type_qualifier declaration_specifiers			
+	: storage_class_specifier						   {$$ = $1;}
+	| storage_class_specifier declaration_specifiers   {$$ = new_2_node("Declaration Specifier", $1, $2);}
+	| type_specifier								   {$$ = $1;}
+	| type_specifier declaration_specifiers			   {$$ = new_2_node("Declaration Specifier", $1, $2);}
+	| type_qualifier								   {$$ = $1;}
+	| type_qualifier declaration_specifiers			   {$$ = new_2_node("Declaration Specifier", $1, $2);}
 	;
 
 init_declarator_list				
-	: init_declarator							
-	| init_declarator_list ',' init_declarator	
+	: init_declarator							       {$$ = $1;}
+	| init_declarator_list ',' init_declarator	       {$$ = new_2_node(",",$1,$3);}
 	;
 
 init_declarator					
-	: declarator   						{$$ = NULL;}              
-	| declarator '=' initializer  		{$$ = new_2_node("=", new_leaf_node($1), $3);}
+	: declarator   						{$$ = $1;}              
+	| declarator '=' initializer  		{$$ = new_2_node("=", $1, $3);}
 	;
 
 storage_class_specifier		
-	: TYPEDEF				
-	| AUTO			
+	: TYPEDEF				             {$$=new_leaf_node($1);}
+	| AUTO			                     {$$=new_leaf_node($1);}
 	;
 
-type_specifier			
-	: VOID					
-	| CHAR					
-	| SHORT					
-	| INT					
-	| BOOL					
-	| LONG					
-	| FLOAT					
-	| DOUBLE				
-	| SIGNED				
-	| UNSIGNED				
-	| STRING				
-	| struct_specifier 	
+type_specifier			                 
+	: VOID	                             {$$=new_leaf_node($1);}			
+	| CHAR					             {$$=new_leaf_node($1);}						
+	| SHORT					             {$$=new_leaf_node($1);}
+	| INT					             {$$=new_leaf_node($1);}
+	| BOOL					             {$$=new_leaf_node($1);}
+	| LONG					             {$$=new_leaf_node($1);}
+	| FLOAT					             {$$=new_leaf_node($1);}
+	| DOUBLE				             {$$=new_leaf_node($1);}
+	| SIGNED				             {$$=new_leaf_node($1);}
+	| UNSIGNED				             {$$=new_leaf_node($1);}
+	| STRING				             {$$=new_leaf_node($1);}
+	| struct_specifier 	                 {$$=$1;}
 	;
 
 struct_specifier     
-	: struct_ IDENTIFIER '{' struct_declaration_list '}'
-	| struct_ '{' struct_declaration_list '}'
-	| struct_ IDENTIFIER
+	: STRUCT IDENTIFIER '{' struct_declaration_list '}'    {$$ = new_2_node("STRUCT",new_leaf_node($2),$4);}
+	| STRUCT '{' struct_declaration_list '}'               {$$ = new_1_node("STRUCT", $3);}
+	| STRUCT IDENTIFIER                                    {$$ = new_1_node("STRUCT", new_leaf_node($2));}
 	;
 
-struct_			
-	: STRUCT			
+struct_declaration_list		 
+	: struct_declaration	              	                								{$$=$1;}
+	| struct_declaration_list struct_declaration           			{$$ = new_2_node("struct_declaration_list",$1,$2);}
 	;
 
-struct_declaration_list		
-	: struct_declaration	
-	| struct_declaration_list struct_declaration    
-	;
-
-struct_declaration 			
-	: specifier_qualifier_list struct_declarator_list ';'	
+struct_declaration 														
+	: specifier_qualifier_list struct_declarator_list ';'		{$$ = new_2_node("struct_declaration",$1,$2);}
 	;
 
 specifier_qualifier_list		
-	: type_specifier specifier_qualifier_list	
-	| type_specifier	                
-	| type_qualifier specifier_qualifier_list	
-	| type_qualifier
+	: type_specifier specifier_qualifier_list					{$$=new_2_node("specifier_qualifier_list",$1,$2);}
+	| type_specifier	                						{$$=$1;}
+	| type_qualifier specifier_qualifier_list					{$$=new_2_node("specifier_qualifier_list",$1,$2);}
+	| type_qualifier											{$$=$1;}
 	;
 
 struct_declarator_list 		
-	: struct_declarator                             
-	| struct_declarator_list ',' struct_declarator  
+	: struct_declarator    										{$$=$1;}                         
+	| struct_declarator_list ',' struct_declarator  			{$$=new_2_node("struct_declaration_list",$1,$3);}
 	;
 
 struct_declarator		
-	: declarator						 
-	| ':' constant_expression				{$$ = $1;}	 
-	| declarator ':' constant_expression 	{$$ = $1;}
+	: declarator						             			{$$ = $1;}
+	| ':' constant_expression									{$$ = new_1_node(":",$2);}	 
+	| declarator ':' constant_expression 	                    {$$ = new_2_node(":",$1,$3);}
 	;
 
 
 type_qualifier	 
-	: CONST			
+	: CONST			                         					{$$=new_leaf_node($1);}
 	;
 
 declarator	
-	: pointer direct_declarator 		{$$ = $2;}			
-	| direct_declarator					{$$ = $1;}				
+	: pointer direct_declarator 								{$$ = new_2_node("declarator",$1,$2);}			
+	| direct_declarator											{$$ = $1;}				
 	;	
 
 direct_declarator	
-	: IDENTIFIER										{$$ = $1;}																				
-	| '(' declarator ')'								{$$ = $2;}								
-	| direct_declarator '[' constant_expression ']'		{$$ = $1;}
-	| direct_declarator '[' ']'							{$$ = $1;}	
-	| direct_declarator '(' parameter_type_list ')'		{$$ = $1;}
-	| direct_declarator '(' identifier_list ')'			{$$ = $1;}
-	| direct_declarator '(' ')'							{$$ = $1;}			
+	: IDENTIFIER										{$$ = new_leaf_node($1);;}																				
+	| '(' declarator ')'								{$$ = new_1_node("()",$2);}								
+	| direct_declarator '[' constant_expression ']'		{$$ = new_2_node("[]",$1,$3);}
+	| direct_declarator '[' ']'							{$$ = new_1_node("[]",$1);}	
+	| direct_declarator '(' parameter_type_list ')'		{$$ = new_2_node("()",$1,$3);}
+	| direct_declarator '(' identifier_list ')'			{$$ = new_2_node("()",$1,$3);}
+	| direct_declarator '(' ')'							{$$ = new_1_node("()",$1);}		
 	;	
 
 pointer						
-	: '*'    							
-	| '*' type_qualifier_list    		
-	| '*' pointer                       
-	| '*' type_qualifier_list pointer   
+	: '*'    							               {$$=new_leaf_node("*");}
+	| '*' type_qualifier_list    		               {$$=new_1_node("*",$2);}
+	| '*' pointer                       			   {$$=new_1_node("*",$2);}
+	| '*' type_qualifier_list pointer                  {$$=new_2_node("*",$2,$3);}
 	;
 
 type_qualifier_list			
-	: type_qualifier						
-	| type_qualifier_list type_qualifier	
+	: type_qualifier									{$$=$1;}		
+	| type_qualifier_list type_qualifier				{$$=new_2_node("type_qualifier_list",$1,$2);}
 	;
 
 
 parameter_type_list
-	: parameter_list                 
+	: parameter_list     								{$$=$1;}            
 	;
 
 parameter_list
-	: parameter_declaration		       	
-	| parameter_list ',' parameter_declaration 
+	: parameter_declaration								{$$=$1;}       	
+	| parameter_list ',' parameter_declaration 			{$$=new_2_node(",",$1,$3);}
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator				
-	| declaration_specifiers abstract_declarator	
-	| declaration_specifiers						
+	: declaration_specifiers declarator					{$$=new_2_node("parameter_declaration",$1,$2);}
+	| declaration_specifiers abstract_declarator		{$$=new_2_node("parameter_declaration",$1,$2);}
+	| declaration_specifiers							{$$=$1;}
 	;
 
 identifier_list
-	: IDENTIFIER						
-	| identifier_list ',' IDENTIFIER	
+	: IDENTIFIER						{$$ = new_leaf_node($1);}			
+	| identifier_list ',' IDENTIFIER	{$$ = new_2_node("," , $1, new_leaf_node($3));}
 	;
 
 type_name
-	: specifier_qualifier_list       
-	| specifier_qualifier_list abstract_declarator 
+	: specifier_qualifier_list						{$$ = $1;}       
+	| specifier_qualifier_list abstract_declarator 	{$$=new_2_node("type_name",$1,$2);}
 	;
 
 abstract_declarator
-	: pointer            					      
-	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
+	: pointer         						{$$ = $1;}   					      
+	| direct_abstract_declarator			{$$ = $1;}
+	| pointer direct_abstract_declarator	{$$=new_2_node("pointer direct_abstract_declarator", $1, $2);}
 	;
 
 direct_abstract_declarator        
-	: '(' abstract_declarator ')'     
-	| '[' ']'
-	| '[' constant_expression ']'									{$$ = "[]";}						
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'		{$$ = $1;}
-	| '(' ')'
-	| '(' parameter_type_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
+	: '(' abstract_declarator ')'     								{$$=new_1_node("()",$2);}
+	| '[' ']'														{$$ = new_leaf_node("[]");}
+	| '[' constant_expression ']'									{$$ = new_1_node("[]",$2);}						
+	| direct_abstract_declarator '[' ']'							{$$=new_1_node("[]",$1);}
+	| direct_abstract_declarator '[' constant_expression  ']'		{$$ = new_2_node("[]", $1, $3);}
+	| '(' ')'														{$$ = new_leaf_node("()");}
+	| '(' parameter_type_list ')'									{$$=new_1_node("()",$2);}
+	| direct_abstract_declarator '(' ')'							{$$=new_1_node("()",$1);}
+	| direct_abstract_declarator '(' parameter_type_list ')'		{$$=new_2_node("()",$1, $3);}
 	;
 
 initializer
@@ -367,20 +366,20 @@ statement
 
 labeled_statement
 	: IDENTIFIER ':' statement      			{$$ = new_2_node("LABELLED_STATEMENT", new_leaf_node($1), $3);}         
-	| CASE constant_expression ':' statement 	{$$ = new_2_node($1, $2, $4);}
-	| DEFAULT ':' statement						{$$ = new_2_node($1, NULL, $3);}	 
+	| CASE constant_expression ':' statement 	{$$ = new_2_node("CASE", $2, $4);}
+	| DEFAULT ':' statement						{$$ = new_2_node("DEFAULT", NULL, $3);}	 
 	;
 	
 compound_statement
 	: '{' '}'									{$$ = NULL;}					
 	| '{' statement_list '}'					{$$ = $2;}				
-	| '{' declaration_list '}'					{$$ = NULL;}				
-	| '{' declaration_list statement_list '}'	{$$ = $3;}
+	| '{' declaration_list '}'					{$$ = $2;}				
+	| '{' declaration_list statement_list '}'	{$$ = new_2_node("STATEMENT LIST", $2, $3);}
 	;
 
 declaration_list
-	: declaration
-	| declaration_list declaration
+	: declaration        						{$$ = $1;}
+	| declaration_list declaration               {$$ = new_2_node("declaration_list",$1,$2);}
 	;
 
 statement_list
@@ -401,18 +400,18 @@ selection_statement
 	;
 
 stmt
-	: ELSE statement declarator_statement_suffix 	{$$ = $2;}
-	| declarator_statement_suffix					{$$=$1;}							
-	;
+	: ELSE statement  	{$$ = $2;}		
+	| statement			{$$ = $1;}			
+	;  
  
 
 new_stmt
-    : NEW type_specifier '[' CONSTANT ']'		{$$=new_2_node("NEW", new_leaf_node($2), new_leaf_node($4));}
-	| NEW type_specifier 						{$$=new_2_node("NEW", new_leaf_node($2), NULL);}
+    : NEW type_specifier '[' CONSTANT ']'		{$$=new_2_node("NEW", $2, new_leaf_node($4));}
+	| NEW type_specifier 						{$$=new_2_node("NEW", $2, NULL);}
 	;
 
 delete_stmt
-    : DELETE IDENTIFIER ';' 		{$$=new_1_node("DELETE", new_leaf_node($2));}
+    : DELETE IDENTIFIER ';' 					{$$=new_1_node("DELETE", new_leaf_node($2));}
 	| DELETE '[' ']' IDENTIFIER ';' 	{$$=new_1_node("DELETE", new_leaf_node($2));}
 	;
 
@@ -443,9 +442,6 @@ iteration_statement
 	| FOR '(' expression_statement expression_statement expression ')' statement	{$$ = new_2_node("FOR", new_3_node("CONTROL-EXPRESSIONS", $3, $4, $5), $7);}
 	;
 
-declarator_statement_suffix
-	: declaration		{$$=new_leaf_node($1);}
-	| statement			{$$=$1;}
 
 jump_statement
 	: CONTINUE ';'									{$$ = new_leaf_node("CONTINUE");}
@@ -460,14 +456,14 @@ translation_unit
 
 external_declaration
 	: function_definition							{$$ = $1;}
-	| declaration									{$$ = NULL;}
+	| declaration									{$$ = $1;}
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement   	{$$ = new_1_node($2, $4);}
-	| declaration_specifiers declarator compound_statement 						{$$ = new_1_node($2, $3);}			 
-	| declarator declaration_list compound_statement							{$$ = new_1_node($1, $3);}				 
-	| declarator compound_statement											 	{$$ = new_1_node($1, $2);}
+	: declaration_specifiers declarator declaration_list compound_statement   	{$$=new_2_node("function_definition",$1,new_3_node("dec,dec_list,c_stmt",$2,$3,$4));}
+	| declaration_specifiers declarator compound_statement 						{$$ = new_3_node("function_definition",$1,$2,$3);}			 
+	| declarator declaration_list compound_statement							{$$ = new_3_node("function_definition",$1,$2,$3);}				 
+	| declarator compound_statement											 	{$$ = new_2_node("function_definition",$1, $2);}
 	;
 
 
@@ -476,7 +472,7 @@ function_definition
 
 
 int yyerror(char *s) {
-       	printf ("THE  ERROR is : %s\n",s);
+       	printf ("THE  ERROR is in line %d : %s\n", line,s);
        	return 0;
 }
 

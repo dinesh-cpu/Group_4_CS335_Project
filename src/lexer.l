@@ -8,6 +8,8 @@ int yyerror(char*);
 int yylex();
 void comment();
 void single_comment();
+int line = 1;
+
 %}
 
 DIGIT [0-9]
@@ -118,7 +120,7 @@ int yywrap(){
     return (1);
 } 
 
-int line = 1;
+
 int column = 0;
 int curr_length = 0;
 int line_buff = 0;
