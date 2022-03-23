@@ -8,4 +8,6 @@ clean:
 	rm -rf parser.tab.c
 	rm -rf parser.tab.h
 	rm -rf ../bin/parser
+	rm -rf ../*.dot
+	rm -rf ../*.pdf
 	rm -rf p

@@ -1,6 +1,7 @@
 typedef struct node{
     long int id;
     char* s;
+    int child_count;
     struct node* child1;
     struct node* child2;
     struct node* child3;

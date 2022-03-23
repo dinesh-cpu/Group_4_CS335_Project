@@ -61,7 +61,7 @@ postfix_expression
 	| postfix_expression '.' IDENTIFIER							{$$ = new_2_node(".", $1, new_leaf_node($3));}	
 	| postfix_expression POINTER_OPERATOR IDENTIFIER		    {$$ = new_2_node("->", $1, new_leaf_node($3));}
 	| postfix_expression INCREMENT								{$$ = new_1_node("++", $1);}		
-	| postfix_expression DECREMENT								{$$ = new_1_node("++", $1);}	
+	| postfix_expression DECREMENT								{$$ = new_1_node("--", $1);}	
 	;
 
 argument_expression_list
@@ -261,7 +261,7 @@ struct_declarator_list
 struct_declarator		
 	: declarator						 
 	| ':' constant_expression				{$$ = $1;}	 
-	| declarator ':' constant_expression 
+	| declarator ':' constant_expression 	{$$ = $1;}
 	;
 
 
@@ -507,6 +507,7 @@ node* new_3_node(char* op, node* node1, node* node2, node* node3){
 	new->child3=node3;		
     new->s=(char *)malloc(sizeof(op));	
     new->id = NodeId();	
+	new->child_count = 3;
     strcpy(new->s,op);	
     fprintf(outfile, "\t%lu [label=\"%s\"];\n", new->id, new->s);	
     if(node1)fprintf(outfile, "\t%lu [label=\"%s\"];\n", node1->id, node1->s);	
@@ -525,6 +526,7 @@ node* new_2_Stringval_node(char* op,node* node1,node* node2){
 	new->child3=NULL;
 	new->id = NodeId();
     new->s=(char *)malloc(sizeof(op));
+	new->child_count = 2;
     strcpy(new->s,op);
     fprintf(outfile, "\t%lu [label=\"%s\"];\n", new->id, new->s);
     if(node1)fprintf(outfile, "\t%lu [label=%s];\n", node1->id, node1->s);
@@ -541,6 +543,7 @@ node* new_2_node(char* op,node* node1,node* node2){
 	new->child3=NULL;
 	new->id = NodeId();
     new->s=(char *)malloc(sizeof(op));
+	new->child_count = 3;
     strcpy(new->s,op);
     fprintf(outfile, "\t%lu [label=\"%s\"];\n", new->id, new->s);
     if(node1)fprintf(outfile, "\t%lu [label=\"%s\"];\n", node1->id, node1->s);
@@ -557,6 +560,7 @@ node* new_1_node(char* op,node* node1){
 	new->child3=NULL;
     new->s=(char *)malloc(sizeof(op));
     new->id = NodeId();
+	new->child_count = 1;
     strcpy(new->s,op);
     fprintf(outfile, "\t%lu [label=\"%s\"];\n", new->id, new->s);
     if(node1)fprintf(outfile, "\t%lu [label=\"%s\"];\n", node1->id, node1->s);
@@ -571,6 +575,7 @@ node* new_leaf_node(char* val){
     new->child3=NULL;
     new->s=(char *)malloc(sizeof(val));
     new->id = NodeId();
+	new->child_count = 0;
     strcpy(new->s,val);
     return new;
 }
@@ -616,7 +621,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
 	yyin = infile;
-	//yyset_in(infile);
 
     fprintf(outfile, "digraph tree {\n");
 	yyparse();
