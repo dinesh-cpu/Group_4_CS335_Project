@@ -9,36 +9,15 @@ int main()
     int c = 10;
     int a = 10;
     int b = 100;
-    int c = 1000;
-    switch (c)
-    {
-    case 1:
-        a--;
-        break;
+    // int c = 1000;
+    int arr[5];
+    int k = 1;
+    int sum;
+    printf("%d", arr[0]);
 
-    case 2:
-        a + b;
-        break;
-
-    default:
-        c++;
-    }
-
-    if (i == 0 && i == 10)
+    if (4 > 2)
     {
-        if (j == 10)
-        {
-            i = 10;
-        }
-        j = 10;
-    }
-    else
-    {
-        j = 100;
-    }
-    for (j = 0; j < 10; j++)
-    {
-        i++;
+        int value = 10;
     }
     return 0;
 }

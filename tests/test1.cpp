@@ -1,31 +1,28 @@
-void Array(int arr[], int size)
+int Array(int arr[], int size)
 {
-    int i;
-    for (i = 0; i < size; i++)
-    {
-        i++;
-    }
+    int a = size;
 }
 
 int main()
 {
     int arr[] = {10, 7, 8, 9, 1};
     int c = 7;
-    // arr{10};  will give error here
+    string a = "odne";
     int n = sizeof(arr) / sizeof(arr[0]);
-    int *a = new int;
-    Array(arr, n);
+    int *b = new int;
+    int d = Array(arr, n);
+    int error;
+    error = "error";
     printf("hello");
-    a = 2;
-    if(1){
-        int a = 2;
+    if (1)
+    {
+        int z = 7;
+        string name = "suresh";
     }
-    else{
-        
+    else
+    {
+        int value = 2;
     }
-    delete a;
     delete b;
     return 0;
 }
-
-// put all declarators at the start of the files
