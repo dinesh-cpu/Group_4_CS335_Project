@@ -40,3 +40,23 @@ To clean all the executables:
 ```bash
 $ make clean
 ```
+
+## Milestone-4 (Semantics) 
+
+Steps to run code:
+```bash 
+$ 1. cd src
+$ 2. make all
+$ 3. cd ..
+$ 4. ./bin/parser ./tests/test1.cpp -o graph.dot
+```
+
+For making ast:
+```bash
+$ 1. dot -Tpdf graph.dot -o graph.pdf
+```
+
+To clear all the files:
+```bash 
+$ 1. make clean
+```
