@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.tab.h"
-#include "node.h"
+#include "ast.h"
 
 void row_column();
 void single_comment();
@@ -12,7 +12,6 @@ void comment();
 
 // for line no.
 int line = 1;
-
 %}
 
 DIGIT [0-9]
