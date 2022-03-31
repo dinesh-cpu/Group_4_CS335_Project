@@ -1,4 +1,5 @@
 %{
+#include <bits/stdc++.h>
 #include <stdio.h>
 #include <string>
 #include <stdlib.h>
@@ -9,7 +10,6 @@
 #include <iostream>
 #include <vector>
 #include <utility>
-#include <bits/stdc++.h>
 
 using namespace std;
 
