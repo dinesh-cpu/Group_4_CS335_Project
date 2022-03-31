@@ -5,50 +5,76 @@
 #include <sys/types.h>
 using namespace std;
 
+// global symbol table initiation
 void init_symtable()
 {
     sym_table_t *curr = (&GST);
     global_scope_table.insert({0, curr});
 }
 
+//make files
 void dump_symtable()
 {
-    int dir = system("mkdir -p symtable_dump"); // Creating a directory
+    // symboltable directory
+    int dir = system("mkdir -p symtable_dump"); 
     if (dir < 0)
-        cout << "ERROR: DIRECTORY NOT CREATED" << endl; // error msg when directory can not be created
+        cout << "ERROR: DIRECTORY NOT CREATED" << endl; 
     for (auto table : global_scope_table)
     {
         string filename = "symtable_dump/scope_" + to_string(table.first) + ".csv";
 
-        FILE *out = fopen(filename.c_str(), "w");
-        fprintf(out, "name, type, size, init, scope\n");
+        // c_str: convert string to char* and return pointer
+        FILE *out = fopen(filename.c_str() , "w");
+        fprintf(out, "name, type, size, initialised, scope\n");
 
+        // for table entry
         for (auto entry : (*table.second))
         {
             fprintf(out, "%s,%s,%d,%d,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size, entry.second->init, entry.second->scope);
         }
     }
+
+    // make struct symbol table
+    for(auto structtable : struct_symbol_tables){
+        string filename = "symtable_dump/" + structtable.first + ".csv";
+
+        // c_str: convert string to char* and return pointer
+        FILE *out = fopen(filename.c_str() , "w");
+        fprintf(out, "name, type, size\n");
+
+        // for table entry
+        for (auto entry : (*structtable.second))
+        {
+            fprintf(out, "%s,%s,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size);
+        }
+    }
 }
 
+// make new entry
 tEntry *entry(string key, string type, int init, int size, int scope)
 {
     tEntry *new_entry = new tEntry();
     new_entry->type = type, new_entry->key = key, new_entry->size = size, new_entry->scope = scope, new_entry->init = init;
     return new_entry;
 }
-tEntry *make_struct_entry(std::string key, std::string type, int size)
-{
 
+// for struct new entry
+tEntry *make_struct_entry(string key, string type, int size)
+{
     tEntry *s_entry = new tEntry();
     s_entry->key = key, s_entry->size = size, s_entry->type = type;
     return s_entry;
 }
+
+// adding symboltable to global symbol table
 sym_table_t *insert_sym_table(int scope)
 {
     sym_table_t *new_t = new sym_table_t();
     global_scope_table.insert({scope, new_t});
     return new_t;
 }
+
+// insert 
 sym_table_t *insert_struct_sym_table(std::string name)
 {
     sym_table_t *new_t = new sym_table_t();
