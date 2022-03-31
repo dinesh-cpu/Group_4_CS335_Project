@@ -37,11 +37,10 @@ string add_quotes(const string &str)
 	return new_str;
 }
 
-int NodeId()
+unsigned long NodeId()
 {
-	static int nodeId = 0;
-	nodeId += 1;
-	return nodeId;
+	static unsigned long int nodeId = 0;
+	return ++nodeId;
 }
 
 // make new node which has all childern's null

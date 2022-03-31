@@ -13,7 +13,7 @@ typedef struct node
 
 	// AST
 	std::string s;
-	long unsigned int id;
+	unsigned long int id;
 
 	struct node *child1;
 	struct node *child2;
