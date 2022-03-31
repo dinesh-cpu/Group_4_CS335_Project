@@ -7,7 +7,7 @@ int main()
 {
     int arr[] = {10, 7, 8, 9, 1};
     int c = 7;
-    string a = "odne";
+    string a = "odnesds";
     int n = sizeof(arr) / sizeof(arr[0]);
     int *b = new int;
     int d = Array(arr, n);

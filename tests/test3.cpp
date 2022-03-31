@@ -1,3 +1,14 @@
+struct initd{
+    int val;
+    int scope;
+    int value;
+};
+
+struct address{
+    int name;
+    int size;
+};
+
 int sum(int a, int b)
 {
     return a + b;

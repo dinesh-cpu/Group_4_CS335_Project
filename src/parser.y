@@ -1237,7 +1237,6 @@ int main(int argc, char *argv[])
 
 
 	// for dumping symtable
-	// print_symtable();
 	dump_symtable();
 
 

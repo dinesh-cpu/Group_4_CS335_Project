@@ -74,7 +74,7 @@ sym_table_t *insert_sym_table(int scope)
     return new_t;
 }
 
-// insert 
+// insert structs in table
 sym_table_t *insert_struct_sym_table(std::string name)
 {
     sym_table_t *new_t = new sym_table_t();
@@ -82,98 +82,123 @@ sym_table_t *insert_struct_sym_table(std::string name)
     return new_t;
 }
 
+// insert entry in using scope 
 void insert_entry(string key, string type, int init, int size, int scope)
 {
     sym_table_t *lookup_table;
+
+    // find scope
     if (global_scope_table.find(scope) != global_scope_table.end())
     {
         auto t = global_scope_table.find(scope);
         lookup_table = t->second;
     }
-    if (global_scope_table.find(scope) == global_scope_table.end())
+
+    // if no scope found
+    else if (global_scope_table.find(scope) == global_scope_table.end())
     {
         lookup_table = insert_sym_table(scope);
     }
-    tEntry *new_ = entry(key, type, init, size, scope);
-    lookup_table->insert({key, new_});
+
+    // insert new entry
+    tEntry *new_entrys = entry(key, type, init, size, scope);
+    lookup_table->insert({key, new_entrys});
     return;
 }
 
-void insert_struct_entry(std::string struct_name, std::string key, std::string type, int size)
+
+// insert entry using string in struct
+void insert_struct_entry(string struct_name, string key, string type, int size)
 {
-    sym_table_t *struct_;
+    sym_table_t *struct_lookup;
+
+    // find struct 
     if (struct_symbol_tables.find(struct_name) != struct_symbol_tables.end())
     {
         auto t = struct_symbol_tables.find(struct_name);
-        struct_ = t->second;
+        struct_lookup = t->second;
     }
-    if (struct_symbol_tables.find(struct_name) == struct_symbol_tables.end())
+
+    // if no struct found
+    else if (struct_symbol_tables.find(struct_name) == struct_symbol_tables.end())
     {
-        struct_ = insert_struct_sym_table(struct_name);
+        struct_lookup = insert_struct_sym_table(struct_name);
     }
-    tEntry *new_ = make_struct_entry(key, type, size);
-    struct_->insert({key, new_});
+
+    // insert new entry in struct
+    tEntry *new_entrys = make_struct_entry(key, type, size);
+    struct_lookup->insert({key, new_entrys});
 }
 
-tEntry *find_entry(stack<int> stk, string key)
+
+// find entry in existing symbol table
+tEntry *find_entry(stack<int> s, string key)
 {
     sym_table_t *lookup_table;
 
-    while (!stk.empty())
+    while (!s.empty())
     {
-        if (global_scope_table.find(stk.top()) == global_scope_table.end())
+        // not in this scope
+        if (global_scope_table.find(s.top()) == global_scope_table.end())
         {
-            stk.pop();
+            s.pop();
             continue;
         }
-        if (global_scope_table.find(stk.top()) != global_scope_table.end())
+
+        if (global_scope_table.find(s.top()) != global_scope_table.end())
         {
-            auto t = global_scope_table.find(stk.top());
-            lookup_table = t->second;
+            auto layer = global_scope_table.find(s.top());
+            lookup_table = layer->second;
 
             if (lookup_table->find(key) != lookup_table->end())
             {
-                auto tt = lookup_table->find(key);
-                return tt->second;
+                auto layersecond = lookup_table->find(key);
+                return layersecond->second;
             }
             else if (lookup_table->find(key) == lookup_table->end())
             {
-                stk.pop();
+                s.pop();
             }
         }
     }
     return NULL;
 }
 
-tEntry *find_struct_entry(std::string struct_name, std::string key)
+// to get tentry from struct
+tEntry *find_struct_entry(string struct_name, string key)
 {
-    sym_table_t *struct_t;
-    auto table = struct_symbol_tables.find(struct_name);
-    if (table != struct_symbol_tables.end())
+    if (struct_symbol_tables.find(struct_name) != struct_symbol_tables.end())
     {
-        struct_t = table->second;
-        auto table = struct_t->find(key);
-        if (table != struct_t->end())
-            return table->second;
+        auto table = struct_symbol_tables.find(struct_name);
+        auto struct_t = table->second;
+        
+        if (struct_t->find(key) != struct_t->end()){
+            auto table1 = struct_t->find(key);
+            return table1->second;
+        }
     }
     return NULL;
 }
 
+// to find type
 string find_type(stack<int> st, string key)
 {
     tEntry *entry = find_entry(st, key);
     if (entry == NULL)
-        return string();
+        return "";
+    else 
+        return entry->type;
     return entry->type;
 }
 
+// find struct size
 int struct_size(string s)
 {
     int size = 0;
-    sym_table_t *struct_t;
-    auto table = struct_symbol_tables.find(s);
-    if (table != struct_symbol_tables.end())
+    if (struct_symbol_tables.find(s) != struct_symbol_tables.end())
     {
+        auto table = struct_symbol_tables.find(s);
+        sym_table_t *struct_t;
         struct_t = table->second;
         for (auto table2 : *struct_t)
         {
@@ -183,14 +208,15 @@ int struct_size(string s)
     return size;
 }
 
+// basic functions
 void init_basic_func()
 {
     FUNC_PARAM.insert(make_pair("void printf", "char *"));
 }
 
+// for the size of the types
 int getSize(string s)
 {
-
     unordered_map<string, int> m;
     m["char"] = 0;
     m["int"] = 1;
@@ -206,6 +232,8 @@ int getSize(string s)
     m["float"] = 11;
     m["double"] = 12;
     m["signed int"] = 13;
+    m["string"] = 14;
+    m["bool"] = 15;
 
     if (s.substr(0, 6) == "struct")
         return struct_size(s);
@@ -253,6 +281,12 @@ int getSize(string s)
         break;
     case 13:
         return sizeof(signed int);
+        break;
+    case 14:
+        return sizeof(char *);
+        break;
+    case 15:
+        return sizeof(bool);
         break;
     default:
         return 10;
