@@ -3,36 +3,6 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-string postfix_expr23(string type)
-{
-    string type_new = type;
-    string temp = type.substr(0, 5);
-    string t = "FUNC_";
-    if (temp != t)
-        return "";
-    else
-    {
-        type_new = type_new.substr(5);
-        return type_new;
-    }
-    return type_new;
-}
-
-string postfix_expr67(string type)
-{
-    string type_new = type;
-
-    if (!isInteger(type))
-    {
-        return "";
-    }
-    else
-    {
-        return type_new;
-    }
-    return "here_return_will_not_come";
-}
-
 bool isInteger(string type)
 {
     if (type == "int" || type == "short" || type == "long" || type == "long long" || type == "long long int" || type == "long int" || type == "short int" || type == "unsigned int" || type == "unsigned short" || type == "unsigned long" || type == "unsigned long long" || type == "unsigned long long int" || type == "unsigned long int" || type == "unsigned short int" || type == "signed int" || type == "signed short" || type == "signed long" || type == "signed long long" || type == "signed long long int" || type == "signed long int" || type == "signed short int")
@@ -92,6 +62,21 @@ bool isSignedFloat(string type)
     return false;
 }
 
+string postfix_expr(string type)
+{
+    string type_new = type;
+
+    if (!isInteger(type))
+    {
+        return "";
+    }
+    else
+    {
+        return type_new;
+    }
+    return "here_return_will_not_come";
+}
+
 string unary_expr(string opr, string type, int production)
 {
     string type_new;
@@ -136,6 +121,7 @@ string unary_expr(string opr, string type, int production)
 
 string multiplicative_expr(string t1, string t2, char opr)
 {
+    // cout << "M: " <<t1 << " " <<t2 << " "<< opr <<endl;
     string type;
     unordered_map<char, int> m;
     m['%'] = 0, m['/'] = 1, m['*'] = 2;
@@ -150,15 +136,19 @@ string multiplicative_expr(string t1, string t2, char opr)
         }
         break;
     case 1:
+        
         if (isInteger(t1) && isInteger(t2))
         {
             type = "int";
             return type;
         }
-        else
+        else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
         {
             type = "float";
             return type;
+        }
+        else{
+            return "";
         }
         break;
     case 2:
@@ -167,10 +157,13 @@ string multiplicative_expr(string t1, string t2, char opr)
             type = "int";
             return type;
         }
-        else
+        else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
         {
             type = "float";
             return type;
+        }
+        else{
+            return "";
         }
         break;
 
@@ -190,6 +183,10 @@ string additive_expr(string t1, string t2, char opr)
         return "int";
     }
     else if (isFloat(t1) && isFloat(t2))
+    {
+        return "float";
+    }
+    else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
     {
         return "float";
     }

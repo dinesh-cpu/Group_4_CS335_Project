@@ -16,13 +16,12 @@ using namespace std;
 extern int line;
 fstream outfile;
 
-void tokenize(std::string const &str, const char delim,
-            std::vector<std::string> &out)
+void break_inputs(string const &str, const char delim, vector<string> &out)
 {
     size_t start;
     size_t end = 0;
  
-    while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
+    while ((start = str.find_first_not_of(delim, end)) != string::npos)
     {
         end = str.find(delim, start);
         out.push_back(str.substr(start, end - start));
@@ -78,16 +77,18 @@ primary_expression
 	: IDENTIFIER																			{	$$=new_leaf_node($1);
 																								tEntry* entry=find_entry(scope_st,$1);
 																								if(!entry){
-																											if(is_keyword($$->s))$$->type="void";
-																											else yyerror(string($1) + " not declared");
+																											if(is_keyword($$->s)) 
+																												$$->type="void";
+																											else 
+																												yyerror(string($1) + " is not declared");
 																										}
-																								else{		
-																									string type = entry->type;
-																									if(type == ""){
+																								else{	
+																									if(entry->type == ""){
 																										$$->type = "";
 																										yyerror(string($1) + " is not declared in this scope.");
-																									}else{
-																										$$->type=type;
+																									}
+																									else{
+																										$$->type=entry->type;
 																										$$->key=entry->key;
 																										$$->size=entry->size;
 																										$$->init=entry->init;
@@ -97,12 +98,10 @@ primary_expression
 	| CONSTANT																				{
 																								$$=new_leaf_node($1);
 																								$$->key=$$->s;
-																								string con=$$->s;
 																								$$->init=1;
-																								string str2;
-																								float num;
-																								int a=num;
-																								if(a==num){
+																								float num = stof($$->s);
+																								int a = num;
+																								if(a == num){
 																									$$->val_type=1;
 																									$$->num = num;
 																									$$->type="int";
@@ -112,24 +111,26 @@ primary_expression
 																									$$->type="float";
 																								}
 																							}
-	| STRING_VAL																			{	
+	| STRING_VAL																			{	// cout << "aa gya vai"<<endl;
 																								$$=new_leaf_node($1);
 																								$$->s = add_quotes($$->s);
-																								$$->type = string("char *");
+																								$$->type = "string";
 																								$$->key=$$->s;
 																								$$->init=1;
 																							}
-	| '(' expression ')'                        											{$$=$2;}
+	| '(' expression ')'                        											{
+																								$$=$2;
+																							}
 	;	
 	
 postfix_expression	
 	: primary_expression																	{$$ = $1;}
-	| postfix_expression '[' expression ']'													{	
+	| postfix_expression '[' expression ']'												{	
 																							// printf("postfix called\n");
 																							$$ = new_2_node("[]", $1, $3);
 
 																							if($3->s.substr(0,1) == "-"){
-																								yyerror( "Index of an Array cannot be negative.");
+																								yyerror( "Index of array " + $1->key + " cannot be negative.");
 
 																							}else{ 
 																								int curr_idx;
@@ -144,9 +145,8 @@ postfix_expression
 
 																								int arr_length = entry->size/getSize(entry->type);
 
-
-																								if(curr_idx >= arr_length){
-																									yyerror("Array index is out of bound.");
+																								if(curr_idx > arr_length){
+																									yyerror("Array " + $1->key + " index is out of bound.");
 																								}
 
 																								$$->key=$1->key;
@@ -154,34 +154,30 @@ postfix_expression
 																								$$->num=$1->num;
 																								if($1->init==1 && $3->init==1)
 																									$$->init=1;
-																								}
 																							}
+																						}
 	| postfix_expression '(' ')'															{	
 																								$$ = new_1_node("()", $1);
 
 																							 	tEntry* entry=find_entry(scope_st,$1->key);
-																								if(!entry){
-																									yyerror($1->key +  " not declared");
-																								}
-																								else{
-																								
-																									string type = entry->type;
-																									$$->type=type;
+																								if(entry){
+																									$$->type=entry->type;
 																									$$->key=$1->key;
 																									$$->val_type=$1->val_type;
 																									$$->num=$1->num;
 																									$$->init=$1->init;
 
-																									if(type == ""){
-																										yyerror("Invalid function call");
-																										yyerror("Call to the function is not valid.");
+																									if(entry->type == ""){
+																										yyerror("Invalid function call.");
 																									}
 																									string param=$$->type+" "+$1->key;
-																									auto func_iter = FUNC_PARAM.find(param);
-																									if(func_iter == FUNC_PARAM.end()){
-																										yyerror("Function "+$1->key+" not declared");
+																									if(FUNC_PARAM.find(param) == FUNC_PARAM.end()){
+																										yyerror("Function " + $1->key + " is not declared");
 																									}
 																									func_args="";
+																								}
+																								else{
+																									yyerror($1->key +  " is not declared");
 																								}
 																							}
 	| postfix_expression '(' argument_expression_list ')' 									{	
@@ -189,9 +185,8 @@ postfix_expression
 																							 	tEntry* entry=find_entry(scope_st,$1->key);
 
 																								if(entry){
-																									string type = entry->type;
 																									$$->init=$1->init;
-																									$$->type=type;
+																									$$->type=entry->type;
 																									$$->key=$1->key;
 																									$$->val_type=$1->val_type;
 																									$$->num=$1->num;
@@ -199,14 +194,14 @@ postfix_expression
 																									string param=$$->type+" "+$1->key;
 
 																									if(FUNC_PARAM.find(param)== FUNC_PARAM.end()){
-																										yyerror("Function "+$1->key+" not declared");
+																										yyerror("Function " + $1->key + " is not declared");
 																									}else {
 																										string param=FUNC_PARAM[$$->type+" "+$1->key];
 																										const char delim = ',';
 																										std::vector<std::string> param1;
-																										tokenize(param, delim, param1);
+																										break_inputs(param, delim, param1);
 																										std::vector<std::string> arg1;
-																										tokenize(func_args, delim, arg1);
+																										break_inputs(func_args, delim, arg1);
 																										if(arg1.size()==param1.size()){
                                                             								                for(int i=0;i<arg1.size();i++){
 																											     if(param1[i].substr(0,arg1[i].size())!=arg1[i])
@@ -226,19 +221,23 @@ postfix_expression
 
 
 																								if(entry){
-																									tEntry* str_ent= find_struct_entry($1->type,$3);
-																									if(str_ent){
-																										    if(str_ent->key != $3)
+																									tEntry* struct_entry= find_struct_entry($1->type,$3);
+																									if(struct_entry){
+																										    if(struct_entry->key != $3)
 																											yyerror("Type Mismatch");
-																										    $$->type=str_ent->type;
+																										    $$->type=struct_entry->type;
 
 
 																									}
 																									else{
-																										     yyerror("Invalid attribute " + string($3));
+																										     yyerror("Invalid attribute " + string($3) + " for " + $1->key);
 																											 $$->type = "error_type";
 																									}
 																								}	
+
+																								else{
+																									yyerror($1->key + " not declared.");
+																								}
 
 
 
@@ -247,7 +246,8 @@ postfix_expression
 																								$$ = new_2_node("->", $1, new_leaf_node($3));
 																								$$->key=$1->key;
 																							}
-	| postfix_expression INCREMENT															    {
+
+	| postfix_expression INCREMENT															{
     												    										$$ = new_1_node("++", $1);
 																								$$->key=$1->key;
 																								$$->init=$1->init;
@@ -255,15 +255,13 @@ postfix_expression
 																								$$->val_type=$1->val_type;
 																								$$->num=$1->num+1;
 
-																								string assign = postfix_expr67($1 -> type);
+																								string assign = postfix_expr($1 -> type);
+																								// type is not integer
 																								if(assign == "")
-																								    yyerror("Increment operation is not defined for this type");
+																								    yyerror($1->key + " doesn't have suitable type for increment operation");
 
 																								else
 																								   $$ -> type = assign;
-
-
-
 																							}
 	| postfix_expression DECREMENT															{
 																								$$ = new_1_node("--", $1);
@@ -272,6 +270,14 @@ postfix_expression
 																								$$->num = $1->num-1;
 																								$$->init = $1->init;
 																								$$->type = $1->type;
+
+																								string assign = postfix_expr($1 -> type);
+																								// type is not integer
+																								if(assign == "")
+																								    yyerror($1->key + " doesn't have suitable type for decrement operation");
+
+																								else
+																								   $$ -> type = assign;
 
 																							}	
 	;
@@ -307,49 +313,55 @@ unary_expression
 																								string type = entry->type;
 
 																								if(entry){
+																									string type = entry->type;
+																									$$->num = $2->num+1;
 																									if($2->init == 1)
 																										$$->init = 1;
 																								else
-																									yyerror("Variable not Initialized");
+																									yyerror("Variable " + $2->key + " is not initialised.");
+
 																								$$->type = type;
 																								$$->key=$2->key;
 																								$$->val_type=$2->val_type;
 																								$$->num=$2->num+1;
 
 																							}
-											 												string assign = postfix_expr67($2 -> type);
+											 												string assign = postfix_expr($2 -> type);
 																							 if(assign == ""){
-																								 yyerror("Increment operation is not defined for this type.");
+																								 yyerror($2->key + " doesnot have suitable type for increment operation");
 											 												}
 																							else{
 																								$$ -> type = assign;
 											 												}
 																							}
 	| DECREMENT unary_expression															{	$$ = new_1_node("--", $2);
-																							tEntry* entry=find_entry(scope_st,$2->key);
-																							if(entry){
-																								string type = entry->type;
-																								$$->num = $2->num-1;
-																							if($2->init == 1)
-																								$$->init = 1;
-																							}
-																							$$->type = $2->type;
-																							$$->key=$2->key;
-																							$$->val_type=$2->val_type;
-																							$$->num=$2->num-1;
+																								tEntry* entry=find_entry(scope_st,$2->key);
+																								if(entry){
+																									string type = entry->type;
+																									$$->num = $2->num-1;
+																									if($2->init == 1)
+																										$$->init = 1;
+																								}
+																								else
+																									yyerror("Variable " + $2->key + " is not initialised.");
 
-																							string assign = postfix_expr67($2 -> type);
-																							if(assign == ""){
-																								yyerror("Decrement operation is not defined for this type.");
-																							}else{
-																								$$ -> type = assign;
-																							}	
+																								$$->type = $2->type;
+																								$$->key=$2->key;
+																								$$->val_type=$2->val_type;
+																								$$->num=$2->num-1;
+
+																								string assign = postfix_expr($2 -> type);
+																								if(assign == ""){
+																									yyerror($2->key + " doesnot have suitable type for decrement operation");
+																								}else{
+																									$$ -> type = assign;
+																								}	
 																							}
 	| unary_operator cast_expression       													{
 																							make_children($1, $2, NULL, NULL); $$ = $1;
 																							tEntry* entry=find_entry(scope_st,$2->s);
 																							if(!entry){
-																								yyerror($2->key+" not declared");
+																								yyerror($2->key+" is not declared");
 																							}else{
 																								string type = entry->type;
 																								if($2->init == 1)
@@ -362,7 +374,7 @@ unary_expression
 																							$$->val_type=$2->val_type;
 											 												string assign = unary_expr($1->s, $2 -> type, 1);
 																							if(assign == ""){
-												 												yyerror("Not consistent with the operator" + $1->key);
+												 												yyerror("Not consistent with the operator " + $1->key);
 																							}
 
 																							}
@@ -395,18 +407,22 @@ unary_operator
  	| '(' type_name ')' cast_expression	    	            								{
 		 																						$$ =  new_2_node("CAST_EXPR", $2, $4);
 	 																							$$->type = $2->type;
-																								if($4->init == 1)$$->init = 1;
-																									$$->key=$4->key;
+																								if($4->init == 1)
+																									$$->init = 1;
+																								$$->key=$4->key;
 														 									}   
  	;
 
 multiplicative_expression	
 	: cast_expression                                           							{$$ = $1;}
 	| multiplicative_expression '*' cast_expression             							{
+																								
 																								$$ = new_2_node("*", $1, $3);
+																								// cout << "N:" << $1->type << " " << $3->type<<endl;
 																								string assign = multiplicative_expr($1->type, $3->type, '*'); 
+																								cout<< assign<< endl;
 																								if(assign == ""){
-																									yyerror("Not compatible for using * operator.");
+																									yyerror("Cannot apply * operator on these variables.");
 																								}else{
 																									if(assign == "int"){
 																										$$->type = "long long";
@@ -415,19 +431,25 @@ multiplicative_expression
 																								}
 																							} 
 																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) $$->init=1;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}
 	| multiplicative_expression '/' cast_expression             							{	
-																							$$ = new_2_node("/", $1, $3);
-																							string assign = multiplicative_expr($1->type, $3->type, '/'); 
-																							if(assign == ""){
-																								yyerror("Types are not compatible for using / operator.");
-																							}else{
-																								if(assign=="int")$$->type = "long long";
-																								if(assign=="float")$$->type = "long double";
-																							} 
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("/", $1, $3);
+																								string assign = multiplicative_expr($1->type, $3->type, '/'); 
+																								if(assign == ""){
+																									yyerror("Cannot apply / operator on these variables");
+																								}
+																								else{
+																									if(assign=="int")
+																										$$->type = "long long";
+																									else if(assign=="float")
+																										$$->type = "long double";
+																								} 
 																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
+																								
 																							}														
 																
 																
@@ -437,7 +459,7 @@ multiplicative_expression
 																								$$ = new_2_node("%", $1, $3);
 																								string assign = multiplicative_expr($1->type, $3->type, '%'); 
 																								if(assign == ""){
-																									yyerror("Types arenot compatible for using % operator.");
+																									yyerror("Cannot apply % operator on these variables.");
 																								}else{
 																									if(assign == "int"){
 																										$$->type = "long long";
@@ -454,50 +476,57 @@ additive_expression
 																								$$ = new_2_node("+", $1, $3);
 																								string assign=additive_expr($1->type,$3->type,'+');
 																								if(assign==""){
-																									yyerror("Types are not compatible for using + operator.");
-																								}else $$->type=assign;
+																									yyerror("Cannot apply + operator on these variables.");
+																								}
+																								else $$->type=assign;
 																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) $$->init=1;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																 							}
 	| additive_expression '-' multiplicative_expression          							{
 																								$$ = new_2_node("-", $1, $3);
 																								string assign=additive_expr($1->type,$3->type,'-');
 																								if(assign==""){
-																									yyerror("Types are not compatible for using - operator.");
-																								}else {
+																									yyerror("Cannot apply - operator on these variables.");
+																								}
+																								else {
 																									if(assign=="int")$$->type="long long";
 																									else if(assign=="float")$$->type="long double";
 																									else $$->type=assign;
 																								}
 																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) $$->init=1;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}							
 	;
 
 shift_expression
 	: additive_expression                                        							{$$ = $1;}
 	| shift_expression LEFT_SHIFT_OPERATOR additive_expression      						{
-																							$$ = new_2_node("<<", $1, $3);
-																							if($1->init == 1 && $3->init ==1)
-																  							 	$$->init = 1;
-																  							string assign = shift_expr($1->type, $3->type);
-																  							if(assign == ""){
-																							  yyerror("The operator << has invalid operands.");
-																 							}else{
-																							  $$->type = $1->type;
-																 							}
-																							$$->key=$1->key;
-																 							}
-	| shift_expression RIGHT_SHIFT_OPERATOR additive_expression	   							{$$ = new_2_node(">>", $1, $3);
-																   							if($1->init == 1 && $3->init ==1)
-																   								$$->init = 1;
-																  							string assign = shift_expr($1->type, $3->type);
-																  							if(assign == ""){
-																								  yyerror("The operator << has invalid operands.");
-																  							}else{
+																								$$ = new_2_node("<<", $1, $3);
+																								if($1->init == 1 && $3->init ==1)
+																  								 	$$->init = 1;
+																  								string assign = shift_expr($1->type, $3->type);
+																  								if(assign == ""){
+																								  yyerror("Cannot apply << operator on these variables.");
+																 								}
+																								else{
 																								  $$->type = $1->type;
-																  							}
-																  							$$->key=$1->key;
+																 								}
+																								$$->key=$1->key;
+																 							}
+	| shift_expression RIGHT_SHIFT_OPERATOR additive_expression	   							{
+																								$$ = new_2_node(">>", $1, $3);
+																   								if($1->init == 1 && $3->init ==1)
+																   									$$->init = 1;
+																  								string assign = shift_expr($1->type, $3->type);
+																  								if(assign == ""){
+																									  yyerror("Cannot apply >> operator on these variables.");
+																  								}
+																								else{
+																									  $$->type = $1->type;
+																  								}
+																  								$$->key=$1->key;
 																							}
 	;
 
@@ -507,7 +536,7 @@ relational_expression
 																								$$ = new_2_node("<", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
 																								if(assign=="")
-																								  yyerror("The operator < has invalid operands.");
+																								  yyerror("Cannot apply < operator on these variables.");
 																								else{
 																									if(assign=="bool"){
 																										$$->type=assign;	
@@ -519,10 +548,10 @@ relational_expression
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) $$->init=1;
 																							}							
-	| relational_expression '>' shift_expression											{$$ = new_2_node(">", $1, $3);
+	| relational_expression '>' shift_expression											{	$$ = new_2_node(">", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
 																								if(assign=="")
-																								  yyerror("The operator > has invalid operands.");
+																								  yyerror("Cannot apply > operator on these variables.");
 																								else{
 																									if(assign=="bool"){
 																										$$->type=assign;	
@@ -537,7 +566,7 @@ relational_expression
 	| relational_expression LESS_EQUAL_OPERATOR shift_expression               				{$$ = new_2_node("<=", $1, $3);
 																							string assign=relational_expr($1->type,$3->type);
 																							if(assign=="")
-																							  yyerror("The operator <= has invalid operands.");
+																							  yyerror("Cannot apply <= operator on these variables.");
 																							else{
 																								if(assign=="bool"){
 																									$$->type=assign;	
@@ -552,7 +581,7 @@ relational_expression
 	| relational_expression GREATER_EQUAL_OPERATOR shift_expression 						{$$ = new_2_node(">=", $1, $3);
 																							string assign=relational_expr($1->type,$3->type);
 																							if(assign=="")
-																							  yyerror("The operator >= has invalid operands.");
+																							  yyerror("Cannot apply >= operator on these variables.");
 																							else{
 																								if(assign=="bool"){
 																									$$->type=assign;	
@@ -571,7 +600,7 @@ equality_expression
 	| equality_expression EQUAL_LOGICAL relational_expression								{$$ = new_2_node("==", $1, $3);
 																							string assign=equality_expr($1->type,$3->type);
 																							if(assign=="")
-																							  yyerror("The operator == has invalid operands.");
+																							  yyerror("Cannot apply == operator on these variables.");
 																							else{
 																								if(assign=="True"){
 																									$$->type="bool";	
@@ -586,7 +615,7 @@ equality_expression
 	| equality_expression NOT_EQUAL_OPERATOR relational_expression							{$$ = new_2_node("!=", $1, $3);
 																							string assign=equality_expr($1->type,$3->type);
 																							if(assign=="")
-																							  yyerror("The operator != has invalid operands.");
+																							  yyerror("Cannot apply != operator on these variables.");
 																							else{
 																								if(assign=="True"){
 																									$$->type="bool";	
@@ -928,11 +957,11 @@ direct_declarator
 																									FUNC_PARAM.insert(make_pair($1->type+" "+$1->key,func_params));
 																									const char delim = ',';
 																									std::vector<std::string> args;
-																									tokenize(func_params, delim, args);
+																									break_inputs(func_params, delim, args);
 																									for(int i=0;i<args.size();i++){
 																										const char delim1 = ' ';
 																										std::vector<std::string> arg;
-																										tokenize(args[i], delim1, arg);
+																										break_inputs(args[i], delim1, arg);
 																										string t="";
 																										for(int j=0;j<arg.size()-1;j++){
 																											if(t=="")t=arg[j];
