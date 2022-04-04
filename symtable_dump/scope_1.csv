@@ -1,4 +1,0 @@
-name, type, size, initialised, scope
-a,int,4,1,1
-arr,int,4,1,1
-size,int,4,1,1
