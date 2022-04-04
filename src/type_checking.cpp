@@ -1,6 +1,6 @@
 #include "type_checking.h"
 #include "symbol_table.h"
-#include <iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
 string postfix_expr23(string type)
@@ -15,7 +15,7 @@ string postfix_expr23(string type)
         type_new = type_new.substr(5);
         return type_new;
     }
-    return "here_return_will_not_come";
+    return type_new;
 }
 
 string postfix_expr67(string type)

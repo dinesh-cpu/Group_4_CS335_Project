@@ -125,35 +125,35 @@ primary_expression
 postfix_expression	
 	: primary_expression																	{$$ = $1;}
 	| postfix_expression '[' expression ']'													{	
+																							// printf("postfix called\n");
 																							$$ = new_2_node("[]", $1, $3);
 
 																							if($3->s.substr(0,1) == "-"){
-																								yyerror( "Array index cannot be a negative number");
+																								yyerror( "Index of an Array cannot be negative.");
 
 																							}else{ 
 																								int curr_idx;
-
 																								curr_idx = stoi($3->key);
 
 																								tEntry* entry = find_entry(scope_st, $1->key);
 																								if(!entry){
-																									yyerror($1->key + " not declared");
-
-
+																									yyerror($1->key + " is not declared");
 																								}else{
 																									$$->type=entry->type;
 																								}
-																								int arr_len = entry->size/getSize(entry->type);
+
+																								int arr_length = entry->size/getSize(entry->type);
 
 
-																								if(curr_idx >= arr_len){
-																									yyerror("Array index out of bound.");
+																								if(curr_idx >= arr_length){
+																									yyerror("Array index is out of bound.");
 																								}
 
 																								$$->key=$1->key;
 																								$$->val_type=$1->val_type;
 																								$$->num=$1->num;
-																								if($1->init==1 && $3->init==1)$$->init=1;
+																								if($1->init==1 && $3->init==1)
+																									$$->init=1;
 																								}
 																							}
 	| postfix_expression '(' ')'															{	
@@ -385,7 +385,7 @@ unary_operator
 	: '&'																					{$$ = new_1_node("&", NULL);$$->key = $$->s;$$->type="&";}
 	| '*'																					{$$ = new_1_node("*", NULL);$$->key = $$->s;$$->type="*";}
 	| '+'																					{$$ = new_1_node("+", NULL);$$->key = $$->s;$$->type="+";}
-	| '-'																					{$$ = new_1_node("-", NULL);$$->key = $$->s;$$->type="-";}
+    | '-'																					{$$ = new_1_node("-", NULL);$$->key = $$->s;$$->type="-";}
 	| '~'																					{$$ = new_1_node("~", NULL);$$->key = $$->s;$$->type="~";}
 	| '!'																					{$$ = new_1_node("!", NULL);$$->key = $$->s;$$->type="!";}
 	;

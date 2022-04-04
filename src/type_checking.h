@@ -1,41 +1,23 @@
-#include <string>
-#include <stack>
+#include<bits/stdc++.h>
+using namespace std;
 
-extern std::string type_var;
+extern string type_var;
 
-// std::string primary_expr(std::string id, std::stack<int> st);
-std::string postfix_expr1(std::string type);
+string postfix_expr23(string type);
+string postfix_expr67(string type);
+bool isInteger(string type);
+bool isSignedInteger(string type);
+bool isFloat(string type);
+bool isSignedFloat(string type);
+bool is_keyword(string key);
+string unary_expr(string operator_, string type, int production);
+string multiplicative_expr(string type1, string type2, char operator_);
+string additive_expr(string type1, string type2, char operator_);
+string shift_expr(string type1, string type2);
+string relational_expr(string type1, string type2);
+string equality_expr(string type1, string type2);
+string bitwise_expr(string type1, string type2);
+string conditional_expr(string type1, string type2);
+string valid_assignment(string type1, string type2);
+string assignment_expr(string type1, string  type2, string operator_);
 
-std::string postfix_expr23(std::string type);
-
-std::string postfix_expr67(std::string type);
-
-bool isInteger(std::string type);
-
-bool isSignedInteger(std::string type);
-
-bool isFloat(std::string type);
-
-bool isSignedFloat(std::string type);
-
-std::string unary_expr(std::string opr, std::string type, int production);
-
-std::string multiplicative_expr(std::string t1, std::string t2, char opr);
-
-std::string additive_expr(std::string t1, std::string t2, char opr);
-
-std::string shift_expr(std::string t1, std::string t2);
-
-std::string relational_expr(std::string t1, std::string t2);
-
-std::string equality_expr(std::string t1, std::string t2);
-
-std::string bitwise_expr(std::string t1, std::string t2);
-
-std::string conditional_expr(std::string t1, std::string t2);
-
-std::string valid_assignment(std::string t1, std::string t2);
-std::string assignment_expr(std::string t1, std::string  t2, std::string opr);
-bool is_keyword(std::string key);
-
-// std::string assignment_expr(std::string t1, std::string  t2);

@@ -68,6 +68,13 @@ WS [ \t\v\n\f]
 {DIGIT}*"."{DIGIT}+({FS})?          { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 {DIGIT}+"."({EXP}){FS}?             { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 {DIGIT}+"."{FS}?                    { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+
+"-"{DIGIT}+{IS}?                       { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+"-"{DIGIT}+{EXP}({IS})?                { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+"-"{DIGIT}*"."{DIGIT}+{EXP}({FS})?     { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+"-"{DIGIT}*"."{DIGIT}+({FS})?          { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+"-"{DIGIT}+"."({EXP}){FS}?             { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+"-"{DIGIT}+"."{FS}?                    { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 \'(\\.|[^\\'])+\'	                { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 \"(\\.|[^\\"])*\"	                { yylval.Str = strdup(yytext); row_column(); return(STRING_VAL);}
 

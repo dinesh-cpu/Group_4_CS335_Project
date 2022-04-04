@@ -5,8 +5,10 @@ int Array(int arr[], int size)
 
 int main()
 {
-    int arr[] = {10, 7, 8, 9, 1};
-    int c = 7;
+    int arr[5] = {10, 7, 8, 9, 1};
+    int f = arr[10];
+    int g = arr[-2];
+    int c = 4 - (-2);
     string a = "odnesds";
     int n = sizeof(arr) / sizeof(arr[0]);
     int *b = new int;
