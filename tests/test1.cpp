@@ -27,6 +27,9 @@ int main()
     {
         int value = 2;
     }
+    for(i = 0 ; i < d; i++){
+        int j = i;
+    }
     delete b;
     return 0;
 }

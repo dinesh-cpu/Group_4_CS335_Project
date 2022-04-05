@@ -358,24 +358,24 @@ unary_expression
 																								}	
 																							}
 	| unary_operator cast_expression       													{
-																							make_children($1, $2, NULL, NULL); $$ = $1;
-																							tEntry* entry=find_entry(scope_st,$2->s);
-																							if(!entry){
-																								yyerror($2->key+" is not declared");
-																							}else{
+																								make_children($1, $2, NULL, NULL); $$ = $1;
+																								tEntry* entry=find_entry(scope_st,$2->s);
+																								if(!entry){
+																									yyerror($2->key+" is not declared");
+																								}else{
+																									string type = entry->type;
+																									if($2->init == 1)
+																									$$->init = 1;
+																								}
 																								string type = entry->type;
-																								if($2->init == 1)
-																								$$->init = 1;
-																							}
-																							string type = entry->type;
-																							$$->type = $2->type;
-																							$$->key=$2->key;
-																							$$->num=$2->num;
-																							$$->val_type=$2->val_type;
-											 												string assign = unary_expr($1->s, $2 -> type, 1);
-																							if(assign == ""){
-												 												yyerror("Not consistent with the operator " + $1->key);
-																							}
+																								$$->type = $2->type;
+																								$$->key=$2->key;
+																								$$->num=$2->num;
+																								$$->val_type=$2->val_type;
+											 													string assign = unary_expr($1->s, $2 -> type, 1);
+																								if(assign == ""){
+												 													yyerror("Not consistent with the operator " + $1->key);
+																								}
 
 																							}
 	| SIZEOF unary_expression																{	$$ = new_1_node("SIZEOF", $2);
@@ -563,141 +563,152 @@ relational_expression
 																								$$->key=$1->key;	
 																								if($1->init==1 && $3->init==1) $$->init=1;															
 																							}
-	| relational_expression LESS_EQUAL_OPERATOR shift_expression               				{$$ = new_2_node("<=", $1, $3);
-																							string assign=relational_expr($1->type,$3->type);
-																							if(assign=="")
-																							  yyerror("Cannot apply <= operator on these variables.");
-																							else{
-																								if(assign=="bool"){
-																									$$->type=assign;	
-																								}else if(assign == "Bool"){
-																									$$->type = "Bool";
-																									yyerror("Warning : Comparison between pointer and integer");
-																								}
-																							}	
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;																
+	| relational_expression LESS_EQUAL_OPERATOR shift_expression               				{
+																								$$ = new_2_node("<=", $1, $3);
+																								string assign=relational_expr($1->type,$3->type);
+																								if(assign=="")
+																								  yyerror("Cannot apply <= operator on these variables.");
+																								else{
+																									if(assign=="bool"){
+																										$$->type=assign;	
+																									}else if(assign == "Bool"){
+																										$$->type = "Bool";
+																										yyerror("Warning : Comparison between pointer and integer");
+																									}
+																								}	
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;																
 																							}
-	| relational_expression GREATER_EQUAL_OPERATOR shift_expression 						{$$ = new_2_node(">=", $1, $3);
-																							string assign=relational_expr($1->type,$3->type);
-																							if(assign=="")
-																							  yyerror("Cannot apply >= operator on these variables.");
-																							else{
-																								if(assign=="bool"){
-																									$$->type=assign;	
-																								}else if(assign == "Bool"){
-																									$$->type = "Bool";
-																									yyerror("Warning : Comparison between pointer and integer");
-																								}
-																							}	
-																							if($1->init==1 && $3->init==1) $$->init=1;
-																							$$->key=$1->key;																
+	| relational_expression GREATER_EQUAL_OPERATOR shift_expression 						{
+																								$$ = new_2_node(">=", $1, $3);
+																								string assign=relational_expr($1->type,$3->type);
+																								if(assign=="")
+																								  yyerror("Cannot apply >= operator on these variables.");
+																								else{
+																									if(assign=="bool"){
+																										$$->type=assign;	
+																									}else if(assign == "Bool"){
+																										$$->type = "Bool";
+																										yyerror("Warning : Comparison between pointer and integer");
+																									}
+																								}	
+																								if($1->init==1 && $3->init==1) $$->init=1;
+																								$$->key=$1->key;																
 																							}
 	;
 
 equality_expression
 	: relational_expression										 							{$$ = $1;}
-	| equality_expression EQUAL_LOGICAL relational_expression								{$$ = new_2_node("==", $1, $3);
-																							string assign=equality_expr($1->type,$3->type);
-																							if(assign=="")
-																							  yyerror("Cannot apply == operator on these variables.");
-																							else{
-																								if(assign=="True"){
-																									$$->type="bool";	
-																								}else if(assign == "true"){
-																								
-																									yyerror("Comparison between pointer and integer");
+	| equality_expression EQUAL_LOGICAL relational_expression								{
+																								$$ = new_2_node("==", $1, $3);
+																								string assign=equality_expr($1->type,$3->type);
+																								if(assign=="")
+																								  yyerror("Cannot apply == operator on these variables.");
+																								else{
+																									if(assign=="True"){
+																										$$->type="bool";	
+																									}else if(assign == "true"){
+																									
+																										yyerror("Comparison between pointer and integer");
+																									}
 																								}
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) $$->init=1;																	
 																							}
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;																	
-																							}
-	| equality_expression NOT_EQUAL_OPERATOR relational_expression							{$$ = new_2_node("!=", $1, $3);
-																							string assign=equality_expr($1->type,$3->type);
-																							if(assign=="")
-																							  yyerror("Cannot apply != operator on these variables.");
-																							else{
-																								if(assign=="True"){
-																									$$->type="bool";	
-																								}else if(assign == "true"){
+	| equality_expression NOT_EQUAL_OPERATOR relational_expression							{
+																								$$ = new_2_node("!=", $1, $3);
+																								string assign=equality_expr($1->type,$3->type);
+																								if(assign=="")
+																								  yyerror("Cannot apply != operator on these variables.");
+																								else{
+																									if(assign=="True"){
+																										$$->type="bool";	
+																									}else if(assign == "true"){
 
-																									yyerror("Comparison between pointer and integer");
-																								}
-																							}	
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;																
+																										yyerror("Comparison between pointer and integer");
+																									}
+																								}	
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;																
 																							}
 	;
 
 and_expression
 	: equality_expression										  							{$$ = $1;}
 	| and_expression '&' equality_expression					  							{
-																							$$ = new_2_node("&", $1, $3);
-																							string assign=bitwise_expr($1->type,$3->type);
-																							if(assign=="")
-																								yyerror("Invalid type for '&' expression");
-																							else if(assign=="True"){
-																								$$->type = "long long";
-																
-																							}else if(assign=="true"){
-																								$$->type = "bool";
-																							}
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("&", $1, $3);
+																								string assign=bitwise_expr($1->type,$3->type);
+																								if(assign=="")
+																									yyerror("Invalid type for '&' expression");
+																								else if(assign=="True"){
+																									$$->type = "long long";
+
+																								}else if(assign=="true"){
+																									$$->type = "bool";
+																								}
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}
 	;
 
 exclusive_or_expression
 	: and_expression											  							{$$ = $1;}
 	| exclusive_or_expression '^' and_expression				  							{
-																							$$ = new_2_node("^", $1, $3);
-																							string assign=bitwise_expr($1->type,$3->type);
-																							if(assign=="")
-																								yyerror("Invalid type for '^' expression");
-																							else if(assign=="true"){
-																								$$->type = "bool";
-																							}else if(assign=="True"){
-																								$$->type = "long long";
-																							}	
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("^", $1, $3);
+																								string assign=bitwise_expr($1->type,$3->type);
+																								if(assign=="")
+																									yyerror("Invalid type for '^' expression");
+																								else if(assign=="true"){
+																									$$->type = "bool";
+																								}else if(assign=="True"){
+																									$$->type = "long long";
+																								}	
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression									  							{$$ = $1;}
 	| inclusive_or_expression '|' exclusive_or_expression		  							{
-																							$$ = new_2_node("|", $1, $3);
-																							string assign=bitwise_expr($1->type,$3->type);
-																							if(assign=="")
-																								yyerror("Invalid type for '|' expression");
-																							else if(assign=="true"){
-																								$$->type = "bool";
-																							}else if(assign=="True"){
-																								$$->type = "long long";
-																							}
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("|", $1, $3);
+																								string assign=bitwise_expr($1->type,$3->type);
+																								if(assign=="")
+																									yyerror("Invalid type for '|' expression");
+																								else if(assign=="true"){
+																									$$->type = "bool";
+																								}else if(assign=="True"){
+																									$$->type = "long long";
+																								}
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}						
 	;
 
 logical_and_expression
 	: inclusive_or_expression									  							{$$ = $1;}
 	| logical_and_expression AND_LOGICAL inclusive_or_expression							{
-																							$$ = new_2_node("&&", $1, $3);
-																							$$->type = "bool";
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("&&", $1, $3);
+																								$$->type = "bool";
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																  							}
 	;
 
 logical_or_expression
 	: logical_and_expression									  							{$$ = $1;}
 	| logical_or_expression OR_LOGICAL logical_and_expression								{
-																							$$ = new_2_node("||", $1, $3);
-																							$$->type = "bool";
-																							$$->key=$1->key;
-																							if($1->init==1 && $3->init==1) $$->init=1;
+																								$$ = new_2_node("||", $1, $3);
+																								$$->type = "bool";
+																								$$->key=$1->key;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																							}
 	;
 
@@ -1223,7 +1234,9 @@ std::unordered_map <std::string, sym_table_t*> struct_symbol_tables;
 string func_args;
 sym_table_t sym_table;
 unordered_map <int,sym_table_t*> global_scope_table;
-unordered_map <string,tEntry*> GST;//global_symbol_table
+
+// global
+unordered_map <string,tEntry*> GST;
 unordered_map <int,string> entry_map;
 unordered_map <string,string> FUNC_PARAM;
 sym_table_t*curr;

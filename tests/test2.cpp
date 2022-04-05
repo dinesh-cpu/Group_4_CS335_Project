@@ -19,5 +19,8 @@ int main()
     {
         int value = 10;
     }
+    for(k = 1; k < a; k++){
+        int z = a;
+    }
     return 0;
 }
