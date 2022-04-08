@@ -33,7 +33,6 @@ string add_quotes(const string &str)
 	new_str.insert(0, "\\");
 	new_str.pop_back();
 	new_str.append("\\\"");
-
 	return new_str;
 }
 

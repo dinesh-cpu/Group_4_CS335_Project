@@ -1,5 +1,6 @@
 // ast
 #include <bits/stdc++.h>
+#include "3ac.h"
 
 typedef struct node
 {
@@ -30,8 +31,22 @@ typedef struct node
 	// constant type
 	int val_type; // 1 int, 2 long, 3 float, 4 double
 	double num;
+
+	//3AC
+	int instr_num;
+
+	std::vector<int> nextlist;
+	std::vector<int> startlist;//continue
+	std::vector<int> endlist;//break
+	std::vector<int> truelist;
+	std::vector<int> falselist;
+
+	opd place;
+	int flag;//for struct, array
+	int pointer;//for deferencing
 } node;
 
+extern vector<opd> param_place;
 extern FILE *yyin;
 void free_ast(node *root);
 std::string add_quotes(const std::string &str);
