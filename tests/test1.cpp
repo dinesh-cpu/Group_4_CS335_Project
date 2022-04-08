@@ -9,27 +9,16 @@ int main()
     int f = arr[10];
     int g = arr[-2];
     long c = 4 - (-2);
-    string a = "odnesds";
-    int n = sizeof(arr) / sizeof(arr[0]);
-    int *b = new int;
-    int d = Array(arr, n);
+    float h = 1.1;
     int error;
     int i ;
-    i = a * n;
-    error = "error";
-    printf("hello");
     if (1)
     {
         int z = 7;
-        string name = "suresh";
     }
     else
     {
         int value = 2;
     }
-    for(i = 0 ; i < d; i++){
-        int j = i;
-    }
-    delete b;
     return 0;
 }
