@@ -75,7 +75,7 @@ WS [ \t\v\n\f]
 "-"{DIGIT}*"."{DIGIT}+({FS})?          { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 "-"{DIGIT}+"."({EXP}){FS}?             { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
 "-"{DIGIT}+"."{FS}?                    { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
-\'(\\.|[^\\'])+\'	                { yylval.Str = strdup(yytext); row_column(); return (CONSTANT);}
+\'(\\.|[^\\'])+\'	                { yylval.Str = strdup(yytext); row_column(); return (CHAR_CONSTANT);}
 \"(\\.|[^\\"])*\"	                { yylval.Str = strdup(yytext); row_column(); return(STRING_VAL);}
 
 "+="               { yylval.Str = strdup(yytext); row_column(); return (ADD_ASSIGNMENT);         }     
