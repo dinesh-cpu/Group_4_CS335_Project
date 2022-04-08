@@ -19,4 +19,4 @@ string bitwise_expr(string type1, string type2);
 string conditional_expr(string type1, string type2);
 string valid_assignment(string type1, string type2);
 string assignment_expr(string type1, string  type2, string operator_);
-
+bool is_valid_var_type(std::string type); 

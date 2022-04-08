@@ -64,17 +64,15 @@ bool isSignedFloat(string type)
 
 string postfix_expr(string type)
 {
-    string type_new = type;
-
     if (!isInteger(type))
     {
         return "";
     }
     else
     {
-        return type_new;
+        return type;
     }
-    return "here_return_will_not_come";
+    return "";
 }
 
 string unary_expr(string opr, string type, int production)
@@ -94,14 +92,14 @@ string unary_expr(string opr, string type, int production)
                 return "";
             break;
         case 1:
-            if (!(type == "bool"))
+            if (!(type == "int"))
                 return "";
             break;
         case 2:
             return type;
             break;
         case 3:
-            if (!(type == "bool" || isInteger(type)))
+            if (!(type == "int" || isInteger(type)))
                 return "";
             break;
         case 4:
@@ -129,41 +127,38 @@ string multiplicative_expr(string t1, string t2, char opr)
     switch (index)
     {
     case 0:
+        if(t1 == "int" && t2 == "int")
+            return "int";
         if (isInteger(t1) && isInteger(t2))
         {
-            type = "int";
+            type = "long long";
             return type;
         }
         break;
     case 1:
-        
-        if (isInteger(t1) && isInteger(t2))
+        if(t1 == "int" && t2 == "int")
+            return "int";
+        else if (isInteger(t1) && isInteger(t2))
         {
-            type = "int";
-            return type;
-        }
-        else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
-        {
-            type = "float";
+            type = "long long";
             return type;
         }
         else{
-            return "";
+            type = "float";
+            return type;
         }
         break;
     case 2:
-        if (isInteger(t1) && isInteger(t2))
+        if(t1 == "int" && t2 == "int")
+            return "int";
+        else if (isInteger(t1) && isInteger(t2))
         {
-            type = "int";
-            return type;
-        }
-        else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
-        {
-            type = "float";
+            type = "long long";
             return type;
         }
         else{
-            return "";
+            type = "float";
+            return type;
         }
         break;
 
@@ -178,17 +173,20 @@ string additive_expr(string t1, string t2, char opr)
 {
     int t = t1.size() - 1;
     int w = t2.size() - 1;
-    if (isInteger(t1) && isInteger(t2))
-    {
+    if(t1 == "int" && t2 == "int"){
         return "int";
     }
-    else if (isFloat(t1) && isFloat(t2))
+    else if (isInteger(t1) && isInteger(t2))
+    {
+        return "long long";
+    }
+    else if (t1 == "float" && t2 == "float")
     {
         return "float";
     }
     else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
     {
-        return "float";
+        return "long double";
     }
 
     if ((t1 == "char" && isInteger(t2)) || (t2 == "char" && isInteger(t1)))
@@ -230,7 +228,7 @@ string relational_expr(string t1, string t2)
 
     if ((isInteger(t1) || isFloat(t1) || t1 == "char") && (isInteger(t2) || isFloat(t2) || t2 == "char"))
     {
-        return "bool";
+        return "int";
     }
     else
     {
@@ -242,7 +240,7 @@ string relational_expr(string t1, string t2)
             }
             if (t2 == "char" || isInteger(t2))
             {
-                return "Bool";
+                return "int";
             }
         }
         if (t2[w] == '*')
@@ -253,7 +251,7 @@ string relational_expr(string t1, string t2)
             }
             if (t1 == "char" || isInteger(t1))
             {
-                return "Bool";
+                return "int";
             }
         }
         return "";
@@ -288,13 +286,7 @@ string equality_expr(string t1, string t2)
 
 string bitwise_expr(string t1, string t2)
 {
-
-    if ((t1 == "bool" || isInteger(t1)) && (t2 == "bool" || isInteger(t2)))
-    {
-        return "True";
-    }
-    if (t1 == "bool" && t2 == "bool")
-    {
+    if(isInteger(t1) && isInteger(t2)){
         return "true";
     }
     return "";
@@ -305,6 +297,9 @@ string conditional_expr(string t1, string t2)
 
     int t = t1.size() - 1;
     int w = t2.size() - 1;
+    if(t1==t2){
+        return t1;
+    }
 
     if (isInteger(t1) && isInteger(t2))
     {
@@ -315,10 +310,7 @@ string conditional_expr(string t1, string t2)
     {
         return "long double";
     }
-    if (t1 == t2)
-    {
-        return t1;
-    }
+    
     if (t1[t] == '*' && t2[w] == '*')
     {
         return "void*";
@@ -330,18 +322,21 @@ string valid_assignment(string t1, string t2)
 {
     int t = t1.size() - 1;
     int w = t2.size() - 1;
-    if ((t1[t] == '*' && isInteger(t1)) || (t2[w] == '*' && isInteger(t2)) || (t1[t] == '*' && t2[w] == '*'))
+    if ((t1[t] == '*' && isInteger(t1)) || (t2[w] == '*' && isInteger(t2)) )
     {
         return "warning";
     }
-
+   
+    if(t1 == t2 ){
+        return "true";
+    }
     if (t1 == string("char"))
     {
         t1 = "long long";
     }
     if (isInteger(t1))
     {
-        t1 = "long double";
+        t1 = "long long";
     }
     if (t2 == string("char"))
     {
@@ -349,20 +344,25 @@ string valid_assignment(string t1, string t2)
     }
     if (isInteger(t2))
     {
-        t2 = "long double";
+        t2 = "long long";
     }
 
-    if ((isFloat(t1) && isFloat(t2)) || (t1 == t2))
+    if (isFloat(t1) && isFloat(t2))
     {
         return "true";
     }
+
     if ((t1 == string("void*") && t2[w] == '*') || (t2 == string("void*") && t1[t] == '*'))
     {
         return "true";
     }
-    return "";
-}
+    
 
+    if(t1[t1.size() - 1] == '*' && t2[t2.size() - 1] == '*'){
+        return "warning";
+    }
+}
+    
 string assignment_expr(string t1, string t2, string opr)
 {
     unordered_map<string, int> m;
@@ -465,4 +465,38 @@ bool is_keyword(string key)
     }
 
     return false;
+}
+
+// new function
+bool is_valid_var_type (string type){
+  if(type == "char" || type == "char *")return true;
+  if(type == "int" || type == "int *")return true;
+  if(type == "long int" || type == "long int *")return true;
+  if(type == "long long" || type == "long long *")return true;
+  if(type == "long" || type == "long *")return true;
+  if(type == "long long int" || type == "long long int *")return true;
+
+  if(type == "unsigned int" || type == "unsigned int *")return true;
+  if(type == "unsigned long int" || type == "unsigned long int *")return true;
+  if(type == "unsigned long long" || type == "unsigned long long *")return true;
+  if(type == "unsigned long" || type == "unsigned long *")return true;
+  if(type == "unsigned long long int" || type == "unsigned long long int *")return true;
+
+  if(type == "signed int" || type == "signed int *")return true;
+  if(type == "signed long int" || type == "signed long int *")return true;
+  if(type == "signed long long" || type == "signed long long *")return true;
+  if(type == "signed long" || type == "signed long *")return true;
+  if(type == "signed long long int" || type == "signed long long int *")return true;
+  
+  if(type == "short" || type == "short *")return true;
+  if(type == "short int" || type == "short int *")return true;
+  if(type == "signed short int" || type == "signed short int *")return true;
+  if(type == "unsigned short int" || type == "unsigned short int *")return true;
+
+  if(type == "float" || type == "float *") return true;
+  if(type == "double" || type == "double *") return true;
+  if(type == "long double" || type == "long double *") return true;
+  if(type.substr(0,6) == "struct") return (struct_size(type)!=0) || (struct_size(type.substr(0, type.size()-2))!=0);
+  
+  return false;
 }
