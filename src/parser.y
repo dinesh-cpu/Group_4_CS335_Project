@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include "parser.tab.h"
 #include "ast.h"
-#include "symbol_table.h"
 #include "type_checking.h"
 #include <iostream>
 #include <vector>
@@ -16,24 +15,14 @@ using namespace std;
 extern int line;
 fstream outfile;
 
-void break_inputs(string const &str, const char delim, vector<string> &out)
-{
-    size_t start;
-    size_t end = 0;
- 
-    while ((start = str.find_first_not_of(delim, end)) != string::npos)
-    {
-        end = str.find(delim, start);
-        out.push_back(str.substr(start, end - start));
-    }
-}
-
 int yyerror(const string&);
 int yylex();
 %}
+
 %locations
 
 %union{
+	long long int instr;
     int num;
     char *Str;
     struct node* Node;
@@ -41,7 +30,7 @@ int yylex();
 
 %token<Str> '>' '<' '~' '|' '&' '^' '=' '+' '-' '/' '*' '%' '(' ')' ':' '!' '{' '}' '[' ']' 
 %token<Str> '?' '.' ';' ','
-%token<Str> IDENTIFIER STRING_VAL CONSTANT
+%token<Str> IDENTIFIER STRING_VAL CONSTANT CHAR_CONSTANT
 %token<Str> POINTER_OPERATOR DECREMENT EQUAL_LOGICAL GREATER_EQUAL_OPERATOR INCREMENT LESS_EQUAL_OPERATOR  AND_LOGICAL OR_LOGICAL  NOT_EQUAL_OPERATOR  LEFT_SHIFT_OPERATOR RIGHT_SHIFT_OPERATOR
 %token<Str> PRODUCT_ASSIGNMENT DIVIDE_ASSIGNMENT MOD_ASSIGNMENT  AND_ASSIGNMENT ADD_ASSIGNMENT OR_ASSIGNMENT  SUBTRACT_ASSIGNMENT XOR_ASSIGNMENT  
 %token<Str> BOOL CHAR SHORT INT LONG SIGNED UNSIGNED STRING FLOAT DOUBLE VOID
@@ -60,7 +49,7 @@ int yylex();
 %type<Node> conditional_expression assignment_expression assignment_operator expression
 %type<Node> init_declarator_list init_declarator constant_expression 
 %type<Node> initializer initializer_list statement labeled_statement compound_statement statement_list
-%type<Node> expression_statement  selection_statement stmt iteration_statement jump_statement translation_unit external_declaration function_definition 
+%type<Node> expression_statement  selection_statement iteration_statement jump_statement translation_unit external_declaration function_definition 
 %type<Node> printf_stmt scanf_stmt new_stmt delete_stmt 
 %type<Node> program
 
@@ -69,22 +58,24 @@ int yylex();
 %type<Node> declaration specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
 %type<Node> declaration_list declarator struct_declaration struct_declaration_list pointer struct_declarator_list
 %type<Node> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
-%type<Node> A1 A2 B1 k1 S1 external_struct_declaration
+%type<Node> A1 A2 B1 B2 k1 S1 S2 E1 E2 external_struct_declaration N emit_or emit_and case
 %start program
+
+%type<instr> M 
+%precedence "low"
+%precedence "high"
 %%
 
 primary_expression
 	: IDENTIFIER																			{	$$=new_leaf_node($1);
 																								tEntry* entry=find_entry(scope_st,$1);
 																								if(!entry){
-																											if(is_keyword($$->s)) 
-																												$$->type="void";
-																											else 
+																											
 																												yyerror(string($1) + " is not declared");
 																										}
 																								else{	
 																									if(entry->type == ""){
-																										$$->type = "";
+																										$$->type = "type_error";
 																										yyerror(string($1) + " is not declared in this scope.");
 																									}
 																									else{
@@ -92,6 +83,8 @@ primary_expression
 																										$$->key=entry->key;
 																										$$->size=entry->size;
 																										$$->init=entry->init;
+																										
+																										$$->place = create_opd($$->key,entry);	
 																									}
 																								}
 																							}
@@ -105,18 +98,37 @@ primary_expression
 																									$$->val_type=1;
 																									$$->num = num;
 																									$$->type="int";
-																								}else{
+
+																									$$->place = opd($1);
+																								}
+																								else{
 																									$$->val_type=3;
 																									$$->num = num;
 																									$$->type="float";
+
+																									$$->place = opd($1);
 																								}
 																							}
+	| CHAR_CONSTANT																				{
+																								$$=new_leaf_node($1);
+																								$$->key=$$->s;
+																								$$->type = "char";
+																																															
+																								$$->place = opd($1);
+																							}
+																							
 	| STRING_VAL																			{	// cout << "aa gya vai"<<endl;
 																								$$=new_leaf_node($1);
 																								$$->s = add_quotes($$->s);
 																								$$->type = "string";
 																								$$->key=$$->s;
 																								$$->init=1;
+																								
+																								string tmp=create_tmp_var($$->type,offset,curr_scope);
+																								align_offset(getSize($$->type));
+																								$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+
+																								emit(empty_opd, "", opd($1), $$->place, instruction_num);
 																							}
 	| '(' expression ')'                        											{
 																								$$=$2;
@@ -128,7 +140,8 @@ postfix_expression
 	| postfix_expression '[' expression ']'												{	
 																							// printf("postfix called\n");
 																							$$ = new_2_node("[]", $1, $3);
-
+                                                                                            $$->flag = 1;
+																				
 																							if($3->s.substr(0,1) == "-"){
 																								yyerror( "Index of array " + $1->key + " cannot be negative.");
 
@@ -138,8 +151,10 @@ postfix_expression
 
 																								tEntry* entry = find_entry(scope_st, $1->key);
 																								if(!entry){
+																									$$->type = "type_error";
 																									yyerror($1->key + " is not declared");
-																								}else{
+																								}
+																								else{
 																									$$->type=entry->type;
 																								}
 
@@ -154,6 +169,15 @@ postfix_expression
 																								$$->num=$1->num;
 																								if($1->init==1 && $3->init==1)
 																									$$->init=1;
+
+																								$$->flag=1;
+																								string tmp0=create_tmp_var($$->type + " *",offset,curr_scope);
+																								align_offset(getSize($$->type + " *"));
+																								emit($3->place,"*",opd(to_string(getSize($$->type))),tmp0,instruction_num);
+																								string tmp1=create_tmp_var($$->type + " *",offset,curr_scope);
+																								align_offset(getSize($$->type + " *"));
+																								emit($1->place,"+",tmp0,tmp1,instruction_num);
+																								$$->place = tmp1;
 																							}
 																						}
 	| postfix_expression '(' ')'															{	
@@ -174,9 +198,13 @@ postfix_expression
 																									if(FUNC_PARAM.find(param) == FUNC_PARAM.end()){
 																										yyerror("Function " + $1->key + " is not declared");
 																									}
+																									else{
+																										emit(call_opd, "", $1->place, empty_opd,-1);
+																									}
 																									func_args="";
 																								}
 																								else{
+																									$$->type = "type_error";
 																									yyerror($1->key +  " is not declared");
 																								}
 																							}
@@ -195,22 +223,36 @@ postfix_expression
 
 																									if(FUNC_PARAM.find(param)== FUNC_PARAM.end()){
 																										yyerror("Function " + $1->key + " is not declared");
-																									}else {
+																									}
+																									else {
 																										string param=FUNC_PARAM[$$->type+" "+$1->key];
 																										const char delim = ',';
-																										std::vector<std::string> param1;
-																										break_inputs(param, delim, param1);
-																										std::vector<std::string> arg1;
-																										break_inputs(func_args, delim, arg1);
+																										vector<string> param1;
+																										tokenize_func_args(param, delim, param1);
+																										
+																										vector<string> arg1;
+																										tokenize_func_args(func_args, delim, arg1);																										
+
 																										if(arg1.size()==param1.size()){
                                                             								                for(int i=0;i<arg1.size();i++){
-																											     if(param1[i].substr(0,arg1[i].size())!=arg1[i])
+																											     if(param1[i].substr(0,arg1[i].size())!=arg1[i]){
 																											         yyerror("Invalid type of arguments");
-																										    }
+																												 }
+																										    
+																																															
+																												opd para_mama = create_opd( "__paramama__"+to_string(i), param_place[i].entry);
+																												emit(empty_opd,"",param_place[i],para_mama,-1);
+																											}
+																											emit(call_opd,"",$1->place,empty_opd,-1);
 
-																										}else 
-																										yyerror("Invalid number of arguments");
+																										}
+																										else 
+																											yyerror("Invalid number of arguments");
 																									}
+																								}
+																								else{
+																									$$->type = "type_error";
+																									yyerror($1->key + " is not declared");
 																								}
 																							}
 	| postfix_expression '.' IDENTIFIER														{	
@@ -223,9 +265,9 @@ postfix_expression
 																								if(entry){
 																									tEntry* struct_entry= find_struct_entry($1->type,$3);
 																									if(struct_entry){
-																										    if(struct_entry->key != $3)
+																										if(struct_entry->key != $3)
 																											yyerror("Type Mismatch");
-																										    $$->type=struct_entry->type;
+																										$$->type=struct_entry->type;
 
 
 																									}
@@ -233,10 +275,17 @@ postfix_expression
 																										     yyerror("Invalid attribute " + string($3) + " for " + $1->key);
 																											 $$->type = "error_type";
 																									}
+																									$$->flag=1;
+																									string tmp0 = create_tmp_var($$->type + " *",offset,curr_scope);
+																									align_offset(getSize($$->type + " *"));
+																									emit($1->place,"+",opd(to_string(struct_entry->offset)),tmp0,instruction_num);
+																									$$->place = tmp0;
+
 																								}	
 
 																								else{
-																									yyerror($1->key + " not declared.");
+																									$$->type = "type_error";
+																									yyerror($1->key + " is not declared.");
 																								}
 
 
@@ -257,11 +306,19 @@ postfix_expression
 
 																								string assign = postfix_expr($1 -> type);
 																								// type is not integer
-																								if(assign == "")
+																								if(assign == ""){
+																									$$->type = "type_error";
 																								    yyerror($1->key + " doesn't have suitable type for increment operation");
+																								}
 
-																								else
-																								   $$ -> type = assign;
+																								else{
+																								   	$$ -> type = assign;
+																								   	string tmp=create_tmp_var($$->type,offset,curr_scope);
+																								   	align_offset(getSize($$->type));
+																								   	$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																								   	emit(empty_opd,"",$1->place,$$->place,instruction_num);
+																									emit($$->place,"+",one_opd,$1->place,instruction_num);
+																								}
 																							}
 	| postfix_expression DECREMENT															{
 																								$$ = new_1_node("--", $1);
@@ -273,23 +330,39 @@ postfix_expression
 
 																								string assign = postfix_expr($1 -> type);
 																								// type is not integer
-																								if(assign == "")
+																								if(assign == ""){
+																									$$->type = "type_error";
 																								    yyerror($1->key + " doesn't have suitable type for decrement operation");
-
-																								else
-																								   $$ -> type = assign;
+																								}
+																								else{
+																								   	$$ -> type = assign;
+																								   	string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));																									
+																									emit(empty_opd,"",$1->place,$$->place,instruction_num);
+																									emit($$->place,"-",one_opd,$1->place,instruction_num);
+																								}
 
 																							}	
 	;
 
 argument_expression_list
 	: assignment_expression 																{	$$=$1;
-																							 	if($1->init == 1)$$->init = 1;
+																							 	if($1->init == 1)
+																								 	$$->init = 1;
 																								func_args=$1->type;
 																								$$->key=$1->key;
 																								$$->val_type=$1->val_type;
 																								$$->num=$1->num;
 																								$$->init=$1->init;
+
+																								$$->nextlist=$1->nextlist;
+																								$$->startlist=$1->startlist;
+																								$$->endlist=$1->endlist;
+																								$$->truelist=$1->truelist;
+																								$$->falselist=$1->falselist;
+																								$$->place=$1->place;
+																								param_place.push_back($1->place);
 
 																							}
 	| argument_expression_list ',' assignment_expression 									{
@@ -298,10 +371,12 @@ argument_expression_list
 
 																								func_args=func_args +" ,"+$3->type;
 																							 	$$->type = assign;
-																							 	if($1->init == 1 && $3->init == 1)$$->init = 1;
+																							 	if($1->init == 1 && $3->init == 1)
+																								 	$$->init = 1;
 																								$$->key=$1->key;
 																								$$->val_type=$1->val_type;
 																								$$->num=$1->num+1;
+																								param_place.push_back($3->place);
 
 																							}
 	;
@@ -317,22 +392,30 @@ unary_expression
 																									$$->num = $2->num+1;
 																									if($2->init == 1)
 																										$$->init = 1;
-																								else
-																									yyerror("Variable " + $2->key + " is not initialised.");
 
-																								$$->type = type;
-																								$$->key=$2->key;
-																								$$->val_type=$2->val_type;
-																								$$->num=$2->num+1;
+																								    else
+																										yyerror("Variable " + $2->key + " is not initialised.");
 
-																							}
-											 												string assign = postfix_expr($2 -> type);
-																							 if(assign == ""){
-																								 yyerror($2->key + " doesnot have suitable type for increment operation");
-											 												}
-																							else{
-																								$$ -> type = assign;
-											 												}
+																									$$->type = type;
+																									$$->key=$2->key;
+																									$$->val_type=$2->val_type;
+																									$$->num=$2->num+1;
+																								}
+																								
+																							
+											 													string assign = postfix_expr($2 -> type);
+																								 if(assign == ""){
+																										 $$->type = "type_error";
+																										 yyerror($2->key + " doesnot have suitable type for increment operation");
+											 													}
+																								else{
+																									$$ -> type = assign;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																									emit($2->place,"+",one_opd,$$->place,instruction_num);
+																									emit(empty_opd,"",$$->place,$2->place,instruction_num);
+											 													}
 																							}
 	| DECREMENT unary_expression															{	$$ = new_1_node("--", $2);
 																								tEntry* entry=find_entry(scope_st,$2->key);
@@ -352,20 +435,28 @@ unary_expression
 
 																								string assign = postfix_expr($2 -> type);
 																								if(assign == ""){
+																									$$->type = "type_error";
 																									yyerror($2->key + " doesnot have suitable type for decrement operation");
 																								}else{
 																									$$ -> type = assign;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																									emit($2->place,"-",one_opd,$$->place,instruction_num);
+																									emit(empty_opd,"",$$->place,$2->place,instruction_num);  
 																								}	
 																							}
 	| unary_operator cast_expression       													{
-																								make_children($1, $2, NULL, NULL); $$ = $1;
+																								make_children($1, $2, NULL, NULL); 
+																								$$ = $1;
 																								tEntry* entry=find_entry(scope_st,$2->s);
 																								if(!entry){
 																									yyerror($2->key+" is not declared");
-																								}else{
+																								}
+																								else{
 																									string type = entry->type;
 																									if($2->init == 1)
-																									$$->init = 1;
+																										$$->init = 1;
 																								}
 																								string type = entry->type;
 																								$$->type = $2->type;
@@ -375,6 +466,28 @@ unary_expression
 											 													string assign = unary_expr($1->s, $2 -> type, 1);
 																								if(assign == ""){
 												 													yyerror("Not consistent with the operator " + $1->key);
+																								}
+
+																								if($1->s=="*"){
+																									if($2->type[$2->type.size()-1] != '*')
+																										yyerror($2->key + " is not a pointer type");
+
+																									$$->type=$2->type.substr(0,$2->type.size()-2);
+																								}else if($1->s=="&"){
+																									if($2->type[$2->type.size()-1] == '*')
+																										yyerror($2->key + " is not a pointer type");
+
+																									$$->type = $2->type + " *";
+																								}
+
+																								if($1->s == "*"){
+																									$$->flag = 1;
+																									$$->place = $2->place;
+																								}else {
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																									emit(empty_opd,$1->s,$2->place,$$->place,instruction_num);
 																								}
 
 																							}
@@ -403,7 +516,16 @@ unary_operator
 	;
 
  cast_expression
- 	: unary_expression																		{$$ = $1;}
+ 	: unary_expression																		{$$ = $1;
+																								if($1->flag == 1){		
+																									string tmp1=create_tmp_var($1->type,offset,curr_scope);
+																									align_offset(getSize($1->type));
+																									opd tmp1_opd = create_opd(tmp1,find_entry(scope_st,tmp1));
+																									emit(empty_opd,"*",$1->place,tmp1_opd,instruction_num);
+																									$$->place = tmp1_opd;
+																								}
+																								$$->flag = 0;
+																							}
  	| '(' type_name ')' cast_expression	    	            								{
 		 																						$$ =  new_2_node("CAST_EXPR", $2, $4);
 	 																							$$->type = $2->type;
@@ -418,17 +540,21 @@ multiplicative_expression
 	| multiplicative_expression '*' cast_expression             							{
 																								
 																								$$ = new_2_node("*", $1, $3);
-																								// cout << "N:" << $1->type << " " << $3->type<<endl;
 																								string assign = multiplicative_expr($1->type, $3->type, '*'); 
 																								cout<< assign<< endl;
 																								if(assign == ""){
+																									$$->type = "type_error";
 																									yyerror("Cannot apply * operator on these variables.");
 																								}else{
 																									if(assign == "int"){
-																										$$->type = "long long";
+																										$$->type = "int";
 																									}else if(assign == "float"){
-																										$$->type = "long double";
+																										$$->type = "float";
 																								}
+																								string tmp=create_tmp_var($$->type,offset,curr_scope);
+																								align_offset(getSize($$->type));
+																								$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																								emit($1->place,"*",$3->place,$$->place,instruction_num);
 																							} 
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
@@ -442,14 +568,18 @@ multiplicative_expression
 																								}
 																								else{
 																									if(assign=="int")
-																										$$->type = "long long";
+																										$$->type = "int";
 																									else if(assign=="float")
-																										$$->type = "long double";
+																										$$->type = "float";
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																									emit($1->place,"/",$3->place,$$->place,instruction_num);	
 																								} 
+																								
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
 																									$$->init=1;
-																								
 																							}														
 																
 																
@@ -459,11 +589,16 @@ multiplicative_expression
 																								$$ = new_2_node("%", $1, $3);
 																								string assign = multiplicative_expr($1->type, $3->type, '%'); 
 																								if(assign == ""){
+																									$$->type = "type_error";
 																									yyerror("Cannot apply % operator on these variables.");
 																								}else{
 																									if(assign == "int"){
-																										$$->type = "long long";
-																								} 
+																										$$->type = "int";
+																									} 
+																								string tmp=create_tmp_var($$->type,offset,curr_scope);
+																								align_offset(getSize($$->type));
+																								$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																								emit($1->place,"/",$3->place,$$->place,instruction_num);
 																								}
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) $$->init=1;
@@ -476,9 +611,16 @@ additive_expression
 																								$$ = new_2_node("+", $1, $3);
 																								string assign=additive_expr($1->type,$3->type,'+');
 																								if(assign==""){
+																									$$->type = "type_error";
 																									yyerror("Cannot apply + operator on these variables.");
 																								}
-																								else $$->type=assign;
+																								else{
+																									$$->type=assign;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																									emit($1->place,"+",$3->place,$$->place,instruction_num);
+																								} 
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
 																									$$->init=1;
@@ -487,12 +629,20 @@ additive_expression
 																								$$ = new_2_node("-", $1, $3);
 																								string assign=additive_expr($1->type,$3->type,'-');
 																								if(assign==""){
+																									$$->type = "type_error";
 																									yyerror("Cannot apply - operator on these variables.");
 																								}
 																								else {
-																									if(assign=="int")$$->type="long long";
-																									else if(assign=="float")$$->type="long double";
-																									else $$->type=assign;
+																									if(assign=="int")
+																										$$->type="int";
+																									else if(assign=="float")
+																										$$->type="float";
+																									else 
+																										$$->type=assign;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																									emit($1->place,"-",$3->place,$$->place,instruction_num);
 																								}
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
@@ -508,10 +658,15 @@ shift_expression
 																  								 	$$->init = 1;
 																  								string assign = shift_expr($1->type, $3->type);
 																  								if(assign == ""){
-																								  yyerror("Cannot apply << operator on these variables.");
+																									 $$->type = "type_error";
+																								 	 yyerror("Cannot apply << operator on these variables.");
 																 								}
 																								else{
-																								  $$->type = $1->type;
+																								  	$$->type = $1->type;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																									emit($1->place,"<<",$3->place,$$->place,instruction_num);
 																 								}
 																								$$->key=$1->key;
 																 							}
@@ -521,10 +676,16 @@ shift_expression
 																   									$$->init = 1;
 																  								string assign = shift_expr($1->type, $3->type);
 																  								if(assign == ""){
+																									  $$->type = "type_error";
 																									  yyerror("Cannot apply >> operator on these variables.");
 																  								}
 																								else{
-																									  $$->type = $1->type;
+																									$$->type = $1->type;
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																		                 			align_offset(getSize($$->type));
+																		                 			$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																		                 			
+																		                 			emit($1->place,">>",$3->place,$$->place,instruction_num);
 																  								}
 																  								$$->key=$1->key;
 																							}
@@ -535,11 +696,18 @@ relational_expression
 	| relational_expression '<' shift_expression                 							{
 																								$$ = new_2_node("<", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
-																								if(assign=="")
-																								  yyerror("Cannot apply < operator on these variables.");
+																								if(assign==""){
+																									$$->type = "type_error";
+																									yyerror("Cannot apply < operator on these variables.");
+																								}
 																								else{
-																									if(assign=="bool"){
-																										$$->type=assign;	
+																									if(assign=="int"){
+																										$$->type=assign;
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																										
+																										emit($1->place,"<",$3->place,$$->place,instruction_num);	
 																									}else if(assign == "Bool"){
 																										$$->type = "Bool";
 																										yyerror("Warning : Comparison between pointer and integer");
@@ -550,28 +718,43 @@ relational_expression
 																							}							
 	| relational_expression '>' shift_expression											{	$$ = new_2_node(">", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
-																								if(assign=="")
-																								  yyerror("Cannot apply > operator on these variables.");
+																								if(assign==""){
+																									$$->type = "type_error";
+																								  	yyerror("Cannot apply > operator on these variables.");
+																								}
 																								else{
-																									if(assign=="bool"){
+																									if(assign=="int"){
 																										$$->type=assign;	
-																									}else if(assign == "Bool"){
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																										emit($1->place,">",$3->place,$$->place,instruction_num);
+																									}
+																									else if(assign == "Bool"){
 																										$$->type = "Bool";
 																										yyerror("Warning : Comparison between pointer and integer");
 																									}
 																								}	
 																								$$->key=$1->key;	
-																								if($1->init==1 && $3->init==1) $$->init=1;															
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;															
 																							}
 	| relational_expression LESS_EQUAL_OPERATOR shift_expression               				{
 																								$$ = new_2_node("<=", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
-																								if(assign=="")
-																								  yyerror("Cannot apply <= operator on these variables.");
+																								if(assign==""){
+																									$$->type = "type_error";
+																								  	yyerror("Cannot apply <= operator on these variables.");
+																								}
 																								else{
-																									if(assign=="bool"){
+																									if(assign=="int"){
 																										$$->type=assign;	
-																									}else if(assign == "Bool"){
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																										emit($1->place,"<=",$3->place,$$->place,instruction_num);
+																									}
+																									else if(assign == "Bool"){
 																										$$->type = "Bool";
 																										yyerror("Warning : Comparison between pointer and integer");
 																									}
@@ -583,17 +766,26 @@ relational_expression
 	| relational_expression GREATER_EQUAL_OPERATOR shift_expression 						{
 																								$$ = new_2_node(">=", $1, $3);
 																								string assign=relational_expr($1->type,$3->type);
-																								if(assign=="")
-																								  yyerror("Cannot apply >= operator on these variables.");
+																								if(assign==""){
+																									$$->type = "type_error";
+																									yyerror("Cannot apply >= operator on these variables.");
+																								}
 																								else{
-																									if(assign=="bool"){
+																									if(assign=="int"){
 																										$$->type=assign;	
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																										
+																										emit($1->place,">=",$3->place,$$->place,instruction_num);
+
 																									}else if(assign == "Bool"){
 																										$$->type = "Bool";
 																										yyerror("Warning : Comparison between pointer and integer");
 																									}
 																								}	
-																								if($1->init==1 && $3->init==1) $$->init=1;
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;
 																								$$->key=$1->key;																
 																							}
 	;
@@ -603,28 +795,44 @@ equality_expression
 	| equality_expression EQUAL_LOGICAL relational_expression								{
 																								$$ = new_2_node("==", $1, $3);
 																								string assign=equality_expr($1->type,$3->type);
-																								if(assign=="")
-																								  yyerror("Cannot apply == operator on these variables.");
+																								if(assign==""){
+																									$$->type = "type_error";
+																								    yyerror("Cannot apply == operator on these variables.");
+																								}
 																								else{
 																									if(assign=="True"){
-																										$$->type="bool";	
+																										$$->type="int";
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+																										emit($1->place,"==",$3->place,$$->place,instruction_num);
+
 																									}else if(assign == "true"){
 																									
 																										yyerror("Comparison between pointer and integer");
 																									}
 																								}
 																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) $$->init=1;																	
+																								if($1->init==1 && $3->init==1) 
+																									$$->init=1;																	
 																							}
 	| equality_expression NOT_EQUAL_OPERATOR relational_expression							{
 																								$$ = new_2_node("!=", $1, $3);
 																								string assign=equality_expr($1->type,$3->type);
-																								if(assign=="")
+																								if(assign==""){
+																									$$->type = "type_error";
 																								  yyerror("Cannot apply != operator on these variables.");
+																								}
 																								else{
 																									if(assign=="True"){
-																										$$->type="bool";	
-																									}else if(assign == "true"){
+																										$$->type="int";
+																										string tmp=create_tmp_var($$->type,offset,curr_scope);
+																										align_offset(getSize($$->type));
+																										$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																										
+																										emit($1->place,"!=",$3->place,$$->place,instruction_num);	
+																									}
+																									else if(assign == "true"){
 
 																										yyerror("Comparison between pointer and integer");
 																									}
@@ -640,13 +848,17 @@ and_expression
 	| and_expression '&' equality_expression					  							{
 																								$$ = new_2_node("&", $1, $3);
 																								string assign=bitwise_expr($1->type,$3->type);
-																								if(assign=="")
+																								if(assign==""){
+																									$$->type = "type_error";
 																									yyerror("Invalid type for '&' expression");
-																								else if(assign=="True"){
-																									$$->type = "long long";
-
-																								}else if(assign=="true"){
-																									$$->type = "bool";
+																								}
+																								
+																								else if(assign=="true"){
+																									$$->type = "int";
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																									emit($1->place,"&",$3->place,$$->place,instruction_num);
 																								}
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
@@ -659,12 +871,17 @@ exclusive_or_expression
 	| exclusive_or_expression '^' and_expression				  							{
 																								$$ = new_2_node("^", $1, $3);
 																								string assign=bitwise_expr($1->type,$3->type);
-																								if(assign=="")
+																								if(assign==""){
+																									$$->type = "type_error";
 																									yyerror("Invalid type for '^' expression");
+																								}
 																								else if(assign=="true"){
-																									$$->type = "bool";
-																								}else if(assign=="True"){
-																									$$->type = "long long";
+																									$$->type = "int";
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																									// cout<< "YOLO" << $$->place.s<<endl;
+																									emit($1->place,"^",$3->place,$$->place,instruction_num);
 																								}	
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
@@ -677,12 +894,27 @@ inclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression		  							{
 																								$$ = new_2_node("|", $1, $3);
 																								string assign=bitwise_expr($1->type,$3->type);
-																								if(assign=="")
+																								if(assign==""){
+																									$$->type = "type_error";
 																									yyerror("Invalid type for '|' expression");
+																								}
 																								else if(assign=="true"){
-																									$$->type = "bool";
-																								}else if(assign=="True"){
+																		  							$$->type = "int";
+							
+
+																		                            string tmp=create_tmp_var($$->type,offset,curr_scope);
+																		                            align_offset(getSize($$->type));
+																		                            $$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																		
+																		                            emit($1->place,"|",$3->place,$$->place,instruction_num);
+																
+																	                            }
+																								else if(assign=="True"){
 																									$$->type = "long long";
+																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									align_offset(getSize($$->type));
+																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																									emit($1->place,"|",$3->place,$$->place,instruction_num);
 																								}
 																								$$->key=$1->key;
 																								if($1->init==1 && $3->init==1) 
@@ -692,39 +924,156 @@ inclusive_or_expression
 
 logical_and_expression
 	: inclusive_or_expression									  							{$$ = $1;}
-	| logical_and_expression AND_LOGICAL inclusive_or_expression							{
-																								$$ = new_2_node("&&", $1, $3);
-																								$$->type = "bool";
+	| emit_and AND_LOGICAL M inclusive_or_expression										{
+																								$$ = new_2_node("&&", $1, $4);
+																								$$->type = "int";
 																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) 
+																								if($1->init==1 && $4->init==1) 
 																									$$->init=1;
+																								backpatch($1->truelist, $3);
+																								$4->falselist=makelist(instruction_num);
+																								emit(IF_opd,"==",$4->place,GOTO_opd,-1);
+
+																								$4->truelist=makelist(instruction_num);
+																								emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+
+
+																								string tmp=create_tmp_var($$->type,offset,curr_scope);
+																								align_offset(getSize($$->type));
+																								$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+
+																								backpatch($4->truelist, instruction_num);  
+																								emit(empty_opd,"",one_opd , $$->place, instruction_num);
+																								$$->truelist = makelist(instruction_num);
+																								emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+
+																								backpatch(merge($1->falselist ,$4->falselist), instruction_num);  
+																								emit(empty_opd,"",zero_opd , $$->place, instruction_num);
+																								$$->falselist = makelist(instruction_num);
+																								emit(GOTO_opd,"",empty_opd,empty_opd,-1);	
 																  							}
+	;
+
+emit_and
+	: logical_and_expression  {
+										$$=$1;
+	
+										$$->falselist=merge(makelist(instruction_num),$1->falselist);
+										emit(IF_opd,"==",$1->place,GOTO_opd,-1);
+														
+										$$->truelist=merge(makelist(instruction_num),$1->truelist);
+										emit(GOTO_opd,"",empty_opd,empty_opd,-1);		
+
+									}	
+	;
+
+M
+	: %empty 				{	
+								$$ = instruction_num;
+							
+							}
 	;
 
 logical_or_expression
 	: logical_and_expression									  							{$$ = $1;}
-	| logical_or_expression OR_LOGICAL logical_and_expression								{
-																								$$ = new_2_node("||", $1, $3);
-																								$$->type = "bool";
-																								$$->key=$1->key;
-																								if($1->init==1 && $3->init==1) 
-																									$$->init=1;
-																							}
+	| emit_or OR_LOGICAL M logical_and_expression								{
+																							$$ = new_2_node("||", $1, $4);
+																							$$->type = "int";
+																							$$->key=$1->key;
+																							if($1->init==1 && $4->init==1)
+																								$$->init=1;
+																							
+																							backpatch($1->falselist, $3);
+					
+																							if($4->falselist.size()==0)
+																								$4->falselist=makelist(instruction_num);
+																							else
+																								backpatch($4->falselist, instruction_num);
+																							
+																							emit(IF_opd,"==",$4->place,GOTO_opd,-1);
+					
+					
+																							if($4->truelist.size()==0)
+																								$4->truelist=makelist(instruction_num);
+																							else
+																								backpatch($4->truelist, instruction_num);
+																							
+																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																							
+																							
+																							string tmp=create_tmp_var($$->type,offset,curr_scope);
+																							align_offset(getSize($$->type));
+																							$$->place = create_opd(tmp,find_entry(scope_st,tmp));																												
+																							
+																							backpatch($4->falselist, instruction_num);  
+																							emit(empty_opd,"",zero_opd , $$->place, instruction_num);
+																							$$->falselist = makelist(instruction_num);
+																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																							
+																							backpatch(merge($1->truelist, $4->truelist), instruction_num);  
+																							emit(empty_opd,"",one_opd , $$->place, instruction_num);
+																							$$->truelist = makelist(instruction_num);
+																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																												}
+	;					
+					
+emit_or 					
+	: logical_or_expression		{					
+									$$=$1;					
+					
+		
+									$$->falselist=merge(makelist(instruction_num),$1->falselist);
+									emit(IF_opd,"==",$1->place,GOTO_opd,-1);
+									
+									$$->truelist=merge(makelist(instruction_num),$1->truelist);
+								
+									emit(GOTO_opd,"",empty_opd,empty_opd,-1);		
+								}
 	;
+
 
 conditional_expression
 	: logical_or_expression										           					{$$ = $1;}
-	| logical_or_expression '?' expression ':' conditional_expression      					{
-																								$$ = new_3_node("?:", $1, $3, $5);
-																								string  assign = conditional_expr($1->type, $5->type);
+	| emit_or '?' M expression N ':' M conditional_expression      					{
+																								$$ = new_3_node("?:", $1, $4, $8);
+																								string  assign = conditional_expr($1->type, $8->type);
 																								if(assign == ""){
+																									$$->type = "type_error";
 																									yyerror("The types are not compatible for conditional expression.");
 																								}else{
 																									$$->type = assign;
-																								}
-																								$$->key=$5->key;
-																								if($1->init==1 && $5->init==1 && $3->init==1) $$->init=1;
+																									backpatch($1->truelist, $3);
+																						         	backpatch($1->falselist, $7);
+																						         	
+																						         	string tmp=create_tmp_var($$->type,offset,curr_scope);
+																						         	align_offset(getSize($$->type));
+																						         	$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																						         	
+																						         	emit(empty_opd,"",$8->place , $$->place, instruction_num);
+																						         	// cout<<"WOHOOOOOOOOOOOOOO INSTR_NUM= "<<instruction_num<<endl;
+																						         	emit(GOTO_opd,"",empty_opd,empty_opd,instruction_num+2);
+																						         	backpatch($8->truelist, instruction_num+2);					
+																						         	backpatch($8->falselist, instruction_num+2);					
+																						         	
+																						         	
+																						         	backpatch($4->truelist, $5->instr_num);					
+																						         	backpatch($4->falselist, $5->instr_num);					
+																						         	backpatch($5->nextlist, instruction_num);
+																						         	emit(empty_opd,"",$4->place , $$->place, instruction_num);
+																						        }
+																								$$->key=$8->key;
+																								if($1->init==1 && $8->init==1 && $4->init==1) 
+																									$$->init=1;
 																							}   
+	;
+
+N
+	:%empty 			{
+							$$ = new node();
+							$$->instr_num = instruction_num;														
+							$$->nextlist = makelist(instruction_num);
+							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+						}
 	;
 
 assignment_expression
@@ -733,10 +1082,45 @@ assignment_expression
 																									make_children($2, $1, $3, NULL); $$ = $2;
 																									string assign = assignment_expr($1->type, $3->type, $2->s);
 																									if(assign == ""){
+																										$$->type = "type_error";
 																										yyerror("Cannot assign type " + $3->type + " to " + $1->type);
 																									}else{
-																										if(assign == "true")
+																										if(assign == "true"){
 																											$$->type = $1->type;
+																											if($2->s == "="){
+																												backpatch($3->falselist, instruction_num);
+																												backpatch($3->truelist, instruction_num);
+																												
+																												if($1->flag == 1){
+																													// cout <<"YO"<<endl;
+																													emit(star_opd,"",$3->place,$1->place,instruction_num);
+																												}
+																												else if($3->flag == 1){
+																													// cout <<"NO"<<endl;
+																													emit(empty_opd,"*",$3->place,$1->place,instruction_num);
+																												}
+																												else emit(empty_opd,"",$3->place,$1->place,instruction_num);
+																											}
+																											else{
+																						  						string tmp=create_tmp_var($$->type,offset,curr_scope);
+																						  						align_offset(getSize($$->type));
+																						  						$$->place = create_opd(tmp,find_entry(scope_st,tmp));
+
+																						  						backpatch($3->falselist, instruction_num);
+																						  						backpatch($3->truelist, instruction_num);
+
+																						  						string tmp1=create_tmp_var($$->type,offset,curr_scope);
+																						  						align_offset(getSize($$->type));
+																						  						opd tmp_opd = create_opd(tmp1,find_entry(scope_st,tmp1));																												
+																						  						string str="";
+																						  						str=str+$2->s[0];
+																						  						if($2->s[1] != '=')str = str+$2->s[1];
+																						  						emit($1->place,str,$3->place,$$->place,instruction_num);
+
+																						  						emit(empty_opd,"",$$->place,$1->place,instruction_num);
+																				                          	}
+
+																										}		
 																										else if(assign =="warning"){
 																											$$->type = $1->type;
 																											yyerror("Assignment with incompatible pointer type");
@@ -792,24 +1176,50 @@ init_declarator_list
 init_declarator
 	: declarator                   															{
 																									$$ = $1;
-																									if((find_entry(scope_st,$1->key))){
-																										yyerror($1->key + " is redeclared.");
-																										
-																									}
+																									if(is_valid_var_type($1->type)){
+																										if((find_entry(scope_st,$1->key))){
+																											yyerror($1->key + " is redeclared.");
+
+																										}
+																									    else{
+																									    	insert_entry($1->key,$1->type,0,$1->size,offset,curr_scope);
+																											align_offset($1->size);
+																									    }
+																							     	}
 																									else{
-																										insert_entry($1->key,$1->type,0,$1->size,curr_scope);
+																										$$->type = "type_error";
+																										yyerror("Invalid type specification.");
 																									}
-																								}
+																									$$->place = create_opd($1->key,find_entry(scope_st,$1->key));																												
+											
+																									emit(empty_opd,"",empty_opd,$$->place,instruction_num);
+
+																							}
 	| declarator '=' initializer   																{
-																									$$ = new_2_node("=", $1, $3);
-																									if((find_entry(scope_st,$1->key))){
-																										yyerror($1->key + " is redeclared.");
-																										
-																									}
-																									else{
-																										insert_entry($1->key,$1->type,1,$1->size,curr_scope);
+																								$$ = new_2_node("=", $1, $3);
+																								string assign = assignment_expr($1->type, $3->type, "=");
+																								if(assign == ""){
+																									$$->type = "type_error";
+																									yyerror("Cannot assign type " + $3->type + " to " + $1->type);
+																								}
+																								else{			
+																									if(is_valid_var_type($1->type)){
+																										if(!(find_entry(scope_st,$1->key))){
+																											insert_entry($1->key,$1->type,1,$1->size,offset,curr_scope);
+																											align_offset($1->size);
+																											$$->place = create_opd($1->key,find_entry(scope_st,$1->key));																												
+																											emit(empty_opd,"",$3->place,$$->place,instruction_num);
+																										}
+																										else{
+																											yyerror($1->key + " is redeclared.");
+																										}
+																										$$->type=$1->type;
+																									}else{
+																										$$->type = "type_error";
+																										yyerror("Invalid type specification.");
 																									}
 																								}
+																							} 
 	;
 
 storage_class_specifier
@@ -884,6 +1294,7 @@ struct_specifier
 S1
 	:IDENTIFIER 																				{	$$=new_leaf_node($1);
 																									struct_name = string("struct " + $$->s);
+																									struct_offset = 0;
 																								}
 	;
 
@@ -917,7 +1328,9 @@ struct_declarator_list
 																									if((find_struct_entry(struct_name,$1->key)))
 																										yyerror("Line " + to_string($1->line_num) + ": " + $1->key + " is already declared");
 																									else{
-																										insert_struct_entry(struct_name, $1->key,$1->type,$1->size);
+																										insert_struct_entry(struct_name, $1->key,$1->type,struct_offset,$1->size);
+																										align_struct_offset(getSize($1->type));
+																										$$->size = ($$->size - ($$->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
 																										
 																									}
 																								}
@@ -928,7 +1341,7 @@ struct_declarator_list
 	;
 
 declarator	
-	: pointer direct_declarator 																{
+	: pointer direct_declarator 																{	make_children($1,$2,NULL,NULL);
 																									$$ = new_2_node("declarator",$1,$2);
 																									$$->type=$1->type+" "+$2->type;
 																									$$->key=$2->key;$$->size=getSize($$->type);
@@ -960,51 +1373,72 @@ direct_declarator
 																									$$ = new_1_node("[]",$1);
 																									$$->type=$1->type;$$->key=$1->s;
 																									$$->size=getSize($$->type);
+																									$$->size=getSize($$->type);
 																								}	
-	| direct_declarator '(' B1 parameter_type_list ')'											{
+	| direct_declarator '(' B2 parameter_type_list ')'											{
 																									$$ = new_2_node("()",$1,$4);
 																									$$->type=$1->type;$$->key=$1->s;
 																									$$->size=getSize($$->type);
 																									FUNC_PARAM.insert(make_pair($1->type+" "+$1->key,func_params));
 																									const char delim = ',';
 																									std::vector<std::string> args;
-																									break_inputs(func_params, delim, args);
+																									tokenize_func_args(func_params, delim, args);
+																									insert_entry($1->key,type_var,0,$1->size,-1,0);
+																									$1->place = create_opd($1->key, find_entry(scope_st,$1->key));
+																									emit(func_opd,"",$1->place,empty_opd,-1);
+
 																									for(int i=0;i<args.size();i++){
 																										const char delim1 = ' ';
 																										std::vector<std::string> arg;
-																										break_inputs(args[i], delim1, arg);
+																										tokenize_func_args(args[i], delim1, arg);
 																										string t="";
 																										for(int j=0;j<arg.size()-1;j++){
 																											if(t=="")t=arg[j];
 																											else t+=" "+arg[j];
 																										}
 																										int size=getSize(t);																
-																										insert_entry(arg[arg.size()-1],t,1,size,num_scopes+1);
+																										insert_entry(arg[arg.size()-1],t,1,size,offset,num_scopes+1);
+																										align_offset(size);
+																		
+																										opd tmp = create_opd(arg[arg.size()-1], find_entry(scope_st, arg[arg.size()-1]));
+																										emit(empty_opd, "", empty_opd, tmp, instruction_num);
 																									}			
 																									
 																									func_params="";
-																									insert_entry($1->key,type_var,0,$1->size,0);
+																									insert_entry($1->key,type_var,0,$1->size,-1,0);
     																								entry_map.insert(make_pair(num_scopes+1,$1->key));
 																								}	
-	| direct_declarator '(' B1 identifier_list ')'												{
+	| direct_declarator '(' B2 identifier_list ')'												{
 																									$$ = new_2_node("()",$1,$4);
-																									$$->type=$1->type;$$->key=$1->s;
+																									$$->type=$1->type;
+																									$$->key=$1->s;
 																									$$->size=getSize($$->type);
 																									FUNC_PARAM.insert(make_pair($1->type+" "+$1->key,func_params));
 																									func_params="";
-																									insert_entry($1->key,type_var,0,$1->size,0);
+																									insert_entry($1->key,type_var,0,$1->size,-1,0);
     																								entry_map.insert(make_pair(num_scopes+1,$1->key));
+																									$1->place = create_opd($1->key, find_entry(scope_st,$1->key));
+																									emit(func_opd,"",$1->place,empty_opd,-1);
 																								}	
-	| direct_declarator '(' B1 ')'																{
+	| direct_declarator '(' B2 ')'																{
 																									$$ = new_1_node("()", $1);
 																									$$->type=$1->type;$$->key=$1->s;
 																									$$->size=getSize($$->type);
 																									FUNC_PARAM.insert(make_pair($1->type+" "+$1->key,func_params));
 																									func_params="";
-																									insert_entry($1->key,$1->type,0,$1->size,0);
+																									insert_entry($1->key,$1->type,0,$1->size,-1,0);
     																								entry_map.insert(make_pair(num_scopes+1,$1->key));
+
+																									$1->place = create_opd($1->key, find_entry(scope_st,$1->key));
+																									emit(func_opd,"",$1->place,empty_opd,-1);
 																								}	
 	;	
+
+B2
+	: %empty			{
+							type_var = "";
+							offset = 0;
+						}
 
 pointer
 	: '*' 																						{$$=new_leaf_node("*");$$->type="*";}
@@ -1026,7 +1460,7 @@ k1
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator 														{
+	: declaration_specifiers declarator 														{	$$=new_2_node("parameter_declaration",$1,$2);
 																									if(func_params=="")
 																									    func_params+=$2->type+" "+$2->key;
 																									else
@@ -1089,10 +1523,52 @@ statement
 	| delete_stmt																				{$$ = $1;}
 	;
 
+case
+	:CASE constant_expression 	{
+									$$=$2;
+									string tmp=create_tmp_var($$->type,offset,curr_scope);
+									align_offset(getSize($$->type));
+									opd case_opd = create_opd(tmp,find_entry(scope_st,tmp));																											
+									emit(empty_opd,"",$2->place,case_opd,instruction_num);
+									
+									string tmp1=create_tmp_var($$->type,offset,curr_scope);
+									align_offset(getSize($$->type));
+									$$->place = create_opd(tmp1,find_entry(scope_st,tmp1));
+									
+									emit(case_opd,"-",switch_opd,$$->place,instruction_num);
+									$$->nextlist=makelist(instruction_num);
+									emit(IF_opd,"!=",$$->place,GOTO_opd,-1);
+									
+								}
+	;
+
 labeled_statement
-	: IDENTIFIER ':' statement               													{$$ = new_2_node("LABELLED_STATEMENT", new_leaf_node($1), $3);}
-	| CASE constant_expression ':' statement 													{$$ = new_2_node("CASE", $2, $4);}
-	| DEFAULT ':' statement					 													{$$ = new_1_node("DEFAULT", $3);}
+	: IDENTIFIER M ':' statement               													{	$$ = new_2_node("LABELLED_STATEMENT", new_leaf_node($1), $4);
+																									label_tabel.insert(make_pair($1, $2));
+												
+																									$$->nextlist=$4->nextlist;
+																									$$->startlist=$4->startlist;
+																									$$->endlist=$4->endlist;
+																									$$->truelist=$4->truelist;
+																									$$->falselist=$4->falselist;
+																									$$->place=$4->place;
+																								}
+	| case ':' statement 																		{	$$ = new_2_node("CASE", $1, $3);
+																									$$->endlist=$3->endlist;
+																									$$->startlist=$3->startlist;
+																									$$->nextlist=merge($1->nextlist,$3->nextlist);
+																									$$->truelist=$3->truelist;
+																									$$->falselist=$3->falselist;
+
+																								}
+
+	| DEFAULT ':' statement					 													{	$$ = new_1_node("DEFAULT", $3);
+																									$$->endlist=$3->endlist;
+																									$$->startlist=$3->startlist;
+																									$$->nextlist=$3->nextlist;
+																									$$->truelist=$3->truelist;
+																									$$->falselist=$3->falselist;
+																								}
 	;
 	
 compound_statement
@@ -1126,8 +1602,22 @@ declaration_list
 	;
 
 statement_list
-	: statement																					{$$ = $1;}
-	| statement_list statement																	{$$ = new_2_node("statement_list", $1, $2);}
+	: statement																					{	$$ = $1;
+																									$$->nextlist = merge(	
+																										$1->nextlist,
+																										merge($1->truelist, $1->falselist)
+																									);
+																								}
+	| statement_list M statement																	{	$$ = new_2_node("statement_list", $1, $3);
+																										backpatch($1->nextlist,$2);
+
+																										$$->startlist = merge($1->startlist, $3->startlist);
+																										$$->nextlist = merge(	
+																																$3->nextlist,
+																																merge($3->truelist, $3->falselist)
+																															);
+																										$$->endlist=merge($3->endlist, $1->endlist);
+																									}
 	;
 
 expression_statement
@@ -1137,14 +1627,68 @@ expression_statement
 
 
 selection_statement
-	: IF '(' expression ')' statement stmt    													{if($6){$$ = new_3_node("IF", $3, $5, new_1_node("ELSE", $6));}else{$$ = new_2_node("IF", $3, $5);}}
-	| SWITCH '(' expression ')' statement	  													{$$ = new_2_node("SWITCH-CASE", $3, $5);}
+	: IF '(' E1 ')' M statement %prec "high"			{	
+															$$ = new_2_node("IF", $3, $6);
+															backpatch($3->truelist, $5);
+															$$->nextlist = merge($3->falselist, $6->nextlist);
+															
+															
+														}												
+	| IF '(' E1 ')' M statement N ELSE M statement %prec "low"  	{
+															$$ = new_3_node("IF", $3, $6, new_1_node("ELSE", $10));
+															
+															backpatch($3->truelist, $5);
+															backpatch($3->falselist, $9);
+															$$->nextlist = merge($6->nextlist,$7->nextlist);
+															$$->nextlist=merge($$->nextlist,$10->nextlist);
+
+															}
+	| SWITCH '(' S2 ')' statement							{
+																$$ = new_2_node("SWITCH-CASE", $3, $5);
+																
+																$$->nextlist=merge($5->nextlist,$5->endlist);
+															}
 	;
 
-stmt
-	: ELSE statement																			{$$ = $2;}
-	| statement 																				{$$ = $1;}
+S2
+	: expression 	{
+						$$=$1;
+						switch_opd = $1->place;
+					}
+	;	
+
+E1
+	: expression 		{
+							$$=$1;
+							
+							$$->truelist=makelist(instruction_num);
+							$$->truelist=merge($$->truelist,$1->truelist);
+							emit(IF_opd,"!=",$1->place,GOTO_opd,-1);
+																
+							$$->falselist=makelist(instruction_num);
+							$$->falselist=merge($$->falselist,$1->falselist);
+							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+						}
 	;
+
+E2
+	: expression_statement 		{
+									$$=$1;
+									
+									$$->truelist=makelist(instruction_num);
+									$$->truelist=merge($$->truelist,$1->truelist);
+									emit(IF_opd,"!=",$1->place,GOTO_opd,-1);
+																		
+									$$->falselist=makelist(instruction_num);
+									$$->falselist=merge($$->falselist,$1->falselist);
+									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+								}
+	;
+
+//stmt
+//	: ELSE statement																			{$$ = $2;}
+//	| statement 																				{$$ = $1;}
+//	;
 
 new_stmt
     : NEW type_specifier '[' CONSTANT ']'														{$$=new_2_node("NEW", $2, new_leaf_node($4));}
@@ -1177,19 +1721,80 @@ scanf_helper
     ;	
 	
 iteration_statement 
-	: WHILE '(' expression ')' statement														{$$ = new_2_node("WHILE", $3, $5);}
-	| DO statement WHILE '(' expression ')' ';'													{$$ = new_2_node("DO-WHILE", $2, $5);}
-	| FOR '(' expression_statement expression_statement ')' statement							{$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $4, NULL), $6);}
-	| FOR '(' expression_statement expression_statement expression ')' statement				{$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $4, $5), $7);}
+	: WHILE M '(' E1 ')' M 	statement														{
+																								$$ = new_2_node("WHILE", $4, $7);
+																								
+																								backpatch($7->startlist, $2);
+																								backpatch($4->truelist, $6);
+																								$$->nextlist = merge($4->falselist, $7->endlist);
+																								emit(GOTO_opd,"",empty_opd,empty_opd, $2);
+																							}
+	| DO M statement WHILE '(' M E1 N ')' ';'												{
+																								$$ = new_2_node("DO-WHILE", $3, $7);
+																								
+																								backpatch($8->nextlist, $2);
+																								backpatch($3->startlist, $6);
+																								backpatch($7->truelist, $8->instr_num);
+																								$$->nextlist = merge($3->endlist, $7->falselist);
+																								
+																							}
+	| FOR '(' expression_statement M E2  ')' M statement									{
+																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, NULL), $8);
+																								
+																								backpatch($8->nextlist,$4);
+																								backpatch($8->startlist,$4);
+																								$$->nextlist=merge($8->endlist,$5->falselist);
+																								backpatch($5->truelist,$7);
+																								emit(GOTO_opd,"",empty_opd,empty_opd, $4);
+																							}
+	| FOR '(' expression_statement M E2 M expression N ')' M statement						{
+																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, $7), $11);
+																								
+																								backpatch($11->nextlist,$6);
+																								backpatch($11->startlist,$6);
+																								$$->nextlist=merge($5->falselist,$11->endlist);
+																								backpatch($5->truelist,$10);
+																								backpatch($8->nextlist,$4);
+																								emit(GOTO_opd,"",empty_opd,empty_opd, $6);
+																							}
 	;
+
 
 jump_statement
-	: CONTINUE ';'																				{$$ = new_leaf_node("CONTINUE");}
-	| BREAK ';'																					{$$ = new_leaf_node("BREAK");}
-	| RETURN ';'																				{$$ = new_1_node("RETURN", NULL);}
-	| RETURN expression ';'																		{$$ = new_1_node("RETURN", $2);}
-	;
+	: GOTO IDENTIFIER ';'		{
+									$$ = new_1_node("GOTO", new_leaf_node($2));
 
+									auto label =  label_tabel.find($2);
+									
+									if( label !=label_tabel.end())
+										emit(GOTO_opd,"",empty_opd,empty_opd,label->second);
+									else
+										yyerror("Label does not exist");
+								}
+	| CONTINUE ';'				{
+									$$ = new_leaf_node("CONTINUE");
+
+									$$->startlist=makelist(instruction_num);
+									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+								
+								}
+	| BREAK ';'					{
+									$$ = new_leaf_node("BREAK");
+
+									$$->endlist=makelist(instruction_num);
+									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+								}
+	| RETURN ';'				{
+									$$ = new_1_node("RETURN", NULL);
+
+									emit(return_opd,"",empty_opd,empty_opd,-1);
+								}
+	| RETURN expression ';'		{
+									$$ = new_1_node("RETURN", $2);
+
+									emit(return_opd,"",$2->place,empty_opd,-1);
+								}
+	;
 program
 	: translation_unit  					  													{free_ast($1);}
 	;
@@ -1227,6 +1832,7 @@ int num_scopes=0;
 stack<int> scope_st;
 
 string func_params;
+vector<opd> param_place;
 string type_var;
 string struct_name;
 std::unordered_map <std::string, sym_table_t*> struct_symbol_tables;
@@ -1239,8 +1845,11 @@ unordered_map <int,sym_table_t*> global_scope_table;
 unordered_map <string,tEntry*> GST;
 unordered_map <int,string> entry_map;
 unordered_map <string,string> FUNC_PARAM;
-sym_table_t*curr;
+unordered_map<string,int> label_tabel;
+sym_table_t *curr;
 
+long offset=0;
+long struct_offset=0;
 
 int yyerror(const string& s) {
 		cout << "ERROR: Line number " << line << ": " << s << "\n";
@@ -1267,6 +1876,7 @@ int main(int argc, char *argv[])
 	// starting scope
 	scope_st.push(0);
 	init_symtable();
+	initialise();
     init_basic_func();
 
 
@@ -1287,6 +1897,8 @@ int main(int argc, char *argv[])
 	global_scope_table.clear();
 	GST.clear();
 	entry_map.clear();
+
+	dump_emit_list();
 
     return 0;
 }
