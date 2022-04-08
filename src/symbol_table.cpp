@@ -10,6 +10,14 @@ void init_symtable()
 {
     sym_table_t *curr = (&GST);
     global_scope_table.insert({0, curr});
+    insert_entry("internal_node","key",1,8,-1,0);
+    insert_entry("__IF__","key",1,8,-1,0);
+    insert_entry("__GOTO__","key",1,8,-1,0);
+    insert_entry("__EMPTY__","key",1,8,-1,0);
+    insert_entry("__STAR__","key",1,8,-1,0);
+    insert_entry("__RETURN__","key",1,8,-1,0);
+    insert_entry("__FUNC__","key",1,8,-1,0);
+    insert_entry("__CALL__","key",1,8,-1,0);
 }
 
 //make files
@@ -25,12 +33,12 @@ void dump_symtable()
 
         // c_str: convert string to char* and return pointer
         FILE *out = fopen(filename.c_str() , "w");
-        fprintf(out, "name, type, size, initialised, scope\n");
+        fprintf(out, "name, type, size, offset, initialised, scope\n");
 
         // for table entry
         for (auto entry : (*table.second))
         {
-            fprintf(out, "%s,%s,%d,%d,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size, entry.second->init, entry.second->scope);
+            fprintf(out, "%s,%s,%d,%ld,%d,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size, entry.second->offset , entry.second->init, entry.second->scope);
         }
     }
 
@@ -40,29 +48,29 @@ void dump_symtable()
 
         // c_str: convert string to char* and return pointer
         FILE *out = fopen(filename.c_str() , "w");
-        fprintf(out, "name, type, size\n");
+        fprintf(out, "name, type, offset, size\n");
 
         // for table entry
         for (auto entry : (*structtable.second))
         {
-            fprintf(out, "%s,%s,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size);
+            fprintf(out, "%s,%s,%ld,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->offset ,entry.second->size);
         }
     }
 }
 
 // make new entry
-tEntry *entry(string key, string type, int init, int size, int scope)
+tEntry *entry(string key, string type, int init, int size, long offset ,int scope)
 {
     tEntry *new_entry = new tEntry();
-    new_entry->type = type, new_entry->key = key, new_entry->size = size, new_entry->scope = scope, new_entry->init = init;
+    new_entry->type = type, new_entry->key = key, new_entry->size = size, new_entry->offset = offset ,new_entry->scope = scope, new_entry->init = init;
     return new_entry;
 }
 
 // for struct new entry
-tEntry *make_struct_entry(string key, string type, int size)
+tEntry *make_struct_entry(string key, string type, long offset ,int size)
 {
     tEntry *s_entry = new tEntry();
-    s_entry->key = key, s_entry->size = size, s_entry->type = type;
+    s_entry->key = key, s_entry->size = size, s_entry->offset = offset ,s_entry->type = type;
     return s_entry;
 }
 
@@ -83,7 +91,7 @@ sym_table_t *insert_struct_sym_table(std::string name)
 }
 
 // insert entry in using scope 
-void insert_entry(string key, string type, int init, int size, int scope)
+void insert_entry(string key, string type, int init, int size, long offset , int scope)
 {
     sym_table_t *lookup_table;
 
@@ -101,14 +109,14 @@ void insert_entry(string key, string type, int init, int size, int scope)
     }
 
     // insert new entry
-    tEntry *new_entrys = entry(key, type, init, size, scope);
+    tEntry *new_entrys = entry(key, type, init, size, offset ,scope);
     lookup_table->insert({key, new_entrys});
     return;
 }
 
 
 // insert entry using string in struct
-void insert_struct_entry(string struct_name, string key, string type, int size)
+void insert_struct_entry(string struct_name, string key, string type, long offset ,int size)
 {
     sym_table_t *struct_lookup;
 
@@ -126,7 +134,7 @@ void insert_struct_entry(string struct_name, string key, string type, int size)
     }
 
     // insert new entry in struct
-    tEntry *new_entrys = make_struct_entry(key, type, size);
+    tEntry *new_entrys = make_struct_entry(key, type, offset ,size);
     struct_lookup->insert({key, new_entrys});
 }
 
@@ -202,7 +210,7 @@ int struct_size(string s)
         struct_t = table->second;
         for (auto table2 : *struct_t)
         {
-            size += table2.second->size;
+            size+=(table2.second->size - (table2.second->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
         }
     }
     return size;
@@ -212,6 +220,16 @@ int struct_size(string s)
 void init_basic_func()
 {
     FUNC_PARAM.insert(make_pair("void printf", "char *"));
+}
+
+void tokenize_func_args(string const &str, const char delim, vector<string> &out){
+    size_t start;
+    size_t end = 0;
+ 
+    while ((start = str.find_first_not_of(delim, end)) != string::npos){
+        end = str.find(delim, start);
+        out.push_back(str.substr(start, end - start));
+    }
 }
 
 // for the size of the types
@@ -291,4 +309,19 @@ int getSize(string s)
     default:
         return 10;
     }
+}
+
+void align_offset(int size){
+    offset+=size;
+    if(offset%OFFSET_ALIGN==0)
+        return;
+    offset = (offset - (offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+}
+
+void align_struct_offset(int size){
+    struct_offset+=size;
+    
+    if(struct_offset%OFFSET_ALIGN==0)
+        return;
+    struct_offset = (struct_offset - (struct_offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
 }
