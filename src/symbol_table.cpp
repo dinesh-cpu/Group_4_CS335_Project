@@ -1,5 +1,4 @@
 // symbol table
-// c_str: convert string to char* and return pointer
 
 #include <bits/stdc++.h>
 #include "symbol_table.h"
@@ -32,13 +31,14 @@ void dump_symtable()
     {
         string filename = "symtable_dump/scope_" + to_string(table.first) + ".csv";
 
-        FILE *out = fopen(filename.c_str() , "w");
-        fprintf(out, "name, type, size, offset, initialised, scope\n");
+        fstream outfile;
+        outfile.open(filename, fstream::out);
+        outfile << "name, type, size, offset, initialised, scope" << endl;
 
         // for table entry
         for (auto entry : (*table.second))
         {
-            fprintf(out, "%s,%s,%d,%ld,%d,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->size, entry.second->offset , entry.second->init, entry.second->scope);
+            outfile << entry.second->key << ", " << entry.second->type << ", " << entry.second->size << ", " << entry.second->offset << ", " << entry.second->init << ", "<< entry.second->scope << endl;
         }
     }
 
@@ -46,14 +46,14 @@ void dump_symtable()
     for(auto structtable : struct_symbol_tables){
         string filename = "symtable_dump/" + structtable.first + ".csv";
 
-        // c_str: convert string to char* and return pointer
-        FILE *out = fopen(filename.c_str() , "w");
-        fprintf(out, "name, type, offset, size\n");
+        fstream struct_out;
+        struct_out.open(filename, fstream::out);
+        struct_out << "name, type, offset, size" << endl;
 
         // for table entry
         for (auto entry : (*structtable.second))
         {
-            fprintf(out, "%s,%s,%ld,%d\n", entry.second->key.c_str(), entry.second->type.c_str(), entry.second->offset ,entry.second->size);
+            struct_out << entry.second->key << ", " << entry.second->type << ", " << entry.second->offset << ", " << entry.second->size << endl;
         }
     }
 }
@@ -210,7 +210,12 @@ int struct_size(string s)
         struct_t = table->second;
         for (auto table2 : *struct_t)
         {
-            size+=(table2.second->size - (table2.second->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
+            if((table2.second->size)%OFFSET_ALIGN == 0){
+                size += table2.second->size;
+            }
+            else {
+                size += (table2.second->size - (table2.second->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
+            } 
         }
     }
     return size;
@@ -312,16 +317,19 @@ int getSize(string s)
 }
 
 void align_offset(int size){
-    offset+=size;
-    if(offset%OFFSET_ALIGN==0)
+    offset += size;
+    if( offset%OFFSET_ALIGN == 0)
         return;
-    offset = (offset - (offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+    else{
+        offset = (offset - (offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+    }
 }
 
 void align_struct_offset(int size){
     struct_offset+=size;
-    
-    if(struct_offset%OFFSET_ALIGN==0)
+    if(struct_offset%OFFSET_ALIGN == 0)
         return;
-    struct_offset = (struct_offset - (struct_offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+    else{
+        struct_offset = (struct_offset - (struct_offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+    }
 }

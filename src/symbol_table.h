@@ -9,7 +9,7 @@ typedef struct table_entry
 {
     int size;
     int scope;
-    int init;
+    int init; 
     string key;
     string type;
     long offset;
