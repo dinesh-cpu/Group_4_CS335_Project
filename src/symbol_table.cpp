@@ -1,10 +1,11 @@
-#include "symbol_table.h"
-#include <iostream>
-#include <unordered_map>
-#include <sys/stat.h>
-#include <sys/types.h>
-using namespace std;
+// symbol table
+// c_str: convert string to char* and return pointer
 
+#include <bits/stdc++.h>
+#include "symbol_table.h"
+
+using namespace std;
+ 
 // global symbol table initiation
 void init_symtable()
 {
@@ -26,12 +27,11 @@ void dump_symtable()
     // symboltable directory
     int dir = system("mkdir -p symtable_dump"); 
     if (dir < 0)
-        cout << "ERROR: DIRECTORY NOT CREATED" << endl; 
+        cout << "Error in creating directory" << endl; 
     for (auto table : global_scope_table)
     {
         string filename = "symtable_dump/scope_" + to_string(table.first) + ".csv";
 
-        // c_str: convert string to char* and return pointer
         FILE *out = fopen(filename.c_str() , "w");
         fprintf(out, "name, type, size, offset, initialised, scope\n");
 

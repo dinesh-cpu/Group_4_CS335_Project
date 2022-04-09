@@ -12,7 +12,7 @@ typedef struct node
 	{
 	}
 
-	// AST
+	// Abstract syntax tree
 	string s;
 	unsigned long int id;
 
@@ -22,10 +22,10 @@ typedef struct node
 	struct node *child3;
 
 	// symbol table and type checking
+	int init;
 	string type;
 	string key;
 	int size;
-	int init;
 
 	// constant type
 	int val_type; // 1 int, 2 long, 3 float, 4 double
