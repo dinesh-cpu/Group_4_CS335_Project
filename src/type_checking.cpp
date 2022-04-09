@@ -496,6 +496,7 @@ bool is_valid_var_type (string type){
   if(type == "float" || type == "float *") return true;
   if(type == "double" || type == "double *") return true;
   if(type == "long double" || type == "long double *") return true;
+  if(type == "string") return true;
   if(type.substr(0,6) == "struct") return (struct_size(type)!=0) || (struct_size(type.substr(0, type.size()-2))!=0);
   
   return false;

@@ -119,7 +119,14 @@ primary_expression
 																							
 	| STRING_VAL																			{	// cout << "aa gya vai"<<endl;
 																								$$=new_leaf_node($1);
-																								$$->s = add_quotes($$->s);
+
+																								// for dot file
+																								string a = "\\";
+																								string b = $$->s;
+																								b.pop_back();
+																								string c = "\\\"";
+																								$$->s = a + b + c;  // "\"name\""
+																								
 																								$$->type = "string";
 																								$$->key=$$->s;
 																								$$->init=1;

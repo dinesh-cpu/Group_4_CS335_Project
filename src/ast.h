@@ -20,7 +20,7 @@ typedef struct node
 	struct node *child2;
 	struct node *child3;
 	int child_count;
-	
+
 	// type checking and error reporting
 	std::string type;
 	std::string key;
@@ -49,7 +49,6 @@ typedef struct node
 extern vector<opd> param_place;
 extern FILE *yyin;
 void free_ast(node *root);
-std::string add_quotes(const std::string &str);
 node *init_leaf_node(node *leaf_node);
 node *new_leaf_node(const std::string &val);
 node *new_1_node(const std::string &display, node *node1);

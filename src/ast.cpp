@@ -33,15 +33,6 @@ void free_ast(node *root)
 	delete root;
 }
 
-string add_quotes(const string &str)
-{
-	string new_str = str;
-	new_str.insert(0, "\\");
-	new_str.pop_back();
-	new_str.append("\\\"");
-	return new_str;
-}
-
 unsigned long NodeId()
 {
 	static unsigned long int nodeId = 0;
@@ -59,7 +50,6 @@ node *new_leaf_node(const string &val)
 	new_node->child_count = 0;
 	new_node->size = -1;
 	new_node->init = 0;
-	
 	new_node->val_type = -1;
 	new_node->num = 0.0;
 	new_node->s = val;
