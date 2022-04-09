@@ -20,7 +20,7 @@ typedef struct node
 	struct node *child2;
 	struct node *child3;
 	int child_count;
-	int lexer;
+	
 	// type checking and error reporting
 	std::string type;
 	std::string key;

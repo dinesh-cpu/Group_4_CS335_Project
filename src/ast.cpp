@@ -13,15 +13,21 @@ extern fstream outfile;
 
 void free_ast(node *root)
 {
-	if (root == NULL)
-	{
+	// null is called
+	if (root == NULL){
 		return;
 	}
 
-	// child
-	free_ast(root->child1);
-	free_ast(root->child2);
-	free_ast(root->child3);
+	// clear child 
+	if(root->child1 != NULL){
+		free_ast(root->child1);
+	}
+	if(root->child2 != NULL){
+		free_ast(root->child2);
+	}
+	if(root->child3 != NULL){
+		free_ast(root->child3);
+	}
 
 	// free space
 	delete root;
@@ -53,7 +59,7 @@ node *new_leaf_node(const string &val)
 	new_node->child_count = 0;
 	new_node->size = -1;
 	new_node->init = 0;
-	new_node->lexer = 0;
+	
 	new_node->val_type = -1;
 	new_node->num = 0.0;
 	new_node->s = val;
@@ -73,7 +79,6 @@ node *init_leaf_node(node *leaf_node)
 	leaf_node->size = -1;
 	leaf_node->id = NodeId();
 	leaf_node->val_type = -1;
-	leaf_node->lexer = 1;
 	leaf_node->num = 0.0;
 	return leaf_node;
 }
@@ -87,7 +92,6 @@ node *new_1_node(const string &display, node *node1)
 	new_node->child3 = NULL;
 	new_node->size = -1;
 	new_node->init = 0;
-	new_node->lexer = 0;
 
 	new_node->child_count = 1;
 	new_node->s = display;
@@ -116,7 +120,6 @@ node *new_2_node(const string &display, node *node1, node *node2)
 	new_node->init = 0;
 	new_node->val_type = -1;
 	new_node->num = 0.0;
-	new_node->lexer = 0;
 
 	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->child_count == 0)
@@ -168,7 +171,7 @@ node *new_3_node(const string &display, node *node1, node *node2, node *node3)
 	new_node->init = 0;
 	new_node->val_type = -1; // int 1,long 2,float 3,double 4
 	new_node->num = 0.0;
-	new_node->lexer = 0;
+
 	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->child_count == 0)
 		outfile << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
