@@ -8,7 +8,7 @@ typedef struct node
 	node() : child1(NULL),
 			 child2(NULL),
 			 child3(NULL),
-			 child_count(0)
+			 to_add_label(1) 
 	{
 	}
 
@@ -16,10 +16,10 @@ typedef struct node
 	std::string s;
 	unsigned long int id;
 
+	int to_add_label;
 	struct node *child1;
 	struct node *child2;
 	struct node *child3;
-	int child_count;
 
 	// type checking and error reporting
 	std::string type;
