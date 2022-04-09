@@ -126,7 +126,7 @@ primary_expression
 																								b.pop_back();
 																								string c = "\\\"";
 																								$$->s = a + b + c;  // "\"name\""
-																								
+
 																								$$->type = "string";
 																								$$->key=$$->s;
 																								$$->init=1;
@@ -1333,7 +1333,7 @@ struct_declarator_list
 	: declarator																				{
 																									$$=$1;
 																									if((find_struct_entry(struct_name,$1->key)))
-																										yyerror("Line " + to_string($1->line_num) + ": " + $1->key + " is already declared");
+																										yyerror("Line " + to_string(line) + ": " + $1->key + " is already declared");
 																									else{
 																										insert_struct_entry(struct_name, $1->key,$1->type,struct_offset,$1->size);
 																										align_struct_offset(getSize($1->type));

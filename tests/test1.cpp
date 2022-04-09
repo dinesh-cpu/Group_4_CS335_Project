@@ -12,6 +12,7 @@ int main()
     float h = 1.1;
     int error;
     int i ;
+    string a = "name";
     if (1)
     {
         int z = 7;

@@ -1,10 +1,10 @@
 // ast
 #include <bits/stdc++.h>
 #include "3ac.h"
+using namespace std;
 
 typedef struct node
 {
-
 	node() : child1(NULL),
 			 child2(NULL),
 			 child3(NULL),
@@ -13,7 +13,7 @@ typedef struct node
 	}
 
 	// AST
-	std::string s;
+	string s;
 	unsigned long int id;
 
 	int to_add_label;
@@ -21,10 +21,9 @@ typedef struct node
 	struct node *child2;
 	struct node *child3;
 
-	// type checking and error reporting
-	std::string type;
-	std::string key;
-	int line_num;
+	// symbol table and type checking
+	string type;
+	string key;
 	int size;
 	int init;
 
@@ -35,11 +34,11 @@ typedef struct node
 	//3AC
 	int instr_num;
 
-	std::vector<int> nextlist;
-	std::vector<int> startlist;//continue
-	std::vector<int> endlist;//break
-	std::vector<int> truelist;
-	std::vector<int> falselist;
+	vector<int> nextlist;
+	vector<int> startlist;//continue
+	vector<int> endlist;//break
+	vector<int> truelist;
+	vector<int> falselist;
 
 	opd place;
 	int flag;//for struct, array
@@ -50,9 +49,9 @@ extern vector<opd> param_place;
 extern FILE *yyin;
 void free_ast(node *root);
 node *init_leaf_node(node *leaf_node);
-node *new_leaf_node(const std::string &val);
-node *new_1_node(const std::string &display, node *node1);
-node *new_2_node(const std::string &display, node *node1, node *node2);
-node *new_2_Stringval_node(const std::string &display, node *node1, node *node2);
-node *new_3_node(const std::string &display, node *node1, node *node2, node *node3);
+node *new_leaf_node(const string &val);
+node *new_1_node(const string &display, node *node1);
+node *new_2_node(const string &display, node *node1, node *node2);
+node *new_2_Stringval_node(const string &display, node *node1, node *node2);
+node *new_3_node(const string &display, node *node1, node *node2, node *node3);
 void make_children(node *node_root, node *child1, node *child2, node *child3);
