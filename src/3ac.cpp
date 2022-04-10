@@ -8,17 +8,17 @@ using namespace std;
 
 vector<quad> global_emit;
 ll  instruction_num;
-int tmp_var_num=0;
-opd IF_opd;
-opd GOTO_opd;
-opd empty_opd;
-opd one_opd;
-opd zero_opd;
-opd switch_opd;
-opd star_opd;
-opd return_opd;
-opd func_opd;
-opd call_opd;
+int tmp_variable = 0;
+opd IF_opd;        // when if is called
+opd GOTO_opd;      // for goto
+opd empty_opd;     // no operator used, direct equality, s = ""
+opd one_opd;       // for increment, increment
+opd zero_opd;       // for 0
+opd switch_opd;     // for switch
+opd star_opd;       // *
+opd return_opd;      // for return 
+opd func_opd;       // for func
+opd call_opd;     // function call
 
 opd create_opd(string s,tEntry* entry){
      opd tmp;
@@ -40,10 +40,10 @@ void initialise(){
 
 
 string create_tmp_var(string type,int offset,int scope){
-    string temp = to_string(tmp_var_num) ; 
+    string temp = to_string(tmp_variable) ; 
     string temp_label = "__var__"+temp;
     string label=temp_label;
-    ++tmp_var_num;
+    ++tmp_variable;
     insert_entry(label,type,1,getSize(type),offset,scope);
     return label;
 }
@@ -56,9 +56,9 @@ void backpatch(vi  list, int line){
     }
 }
 
-void emit(opd opd1, string op, opd opd2, opd result, int line_num){
+void emit(opd operand_1, string operator_1, opd operand_2, opd result, int line_num){
     quad tmp;
-     tmp.opd1 = opd1 ,  tmp.opd2 = opd2 , tmp.result = result , tmp.op = op ,  tmp.line_num = line_num ,  global_emit.pb(tmp) , instruction_num++;
+    tmp.opd1 = operand_1 ,  tmp.opd2 = operand_2 , tmp.result = result , tmp.op = operator_1 ,  tmp.line_num = line_num ,  global_emit.pb(tmp) , instruction_num++;
 }
 
 
@@ -89,6 +89,7 @@ void dump_emit_list(){
              outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "call"){
+            // cout << "call" <<endl;
              outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "*"){

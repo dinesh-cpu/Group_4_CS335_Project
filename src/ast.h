@@ -35,14 +35,14 @@ typedef struct node
 	int instr_num;
 
 	vector<int> nextlist;
-	vector<int> startlist;//continue
-	vector<int> endlist;//break
+	vector<int> startlist; // continue
+	vector<int> endlist;   // break
 	vector<int> truelist;
 	vector<int> falselist;
 
 	opd place;
-	int flag;//for struct, array
-	int pointer;//for deferencing
+	int flag;     //for struct, array
+	int pointer;  //for deferencing
 } node;
 
 extern vector<opd> param_place;
