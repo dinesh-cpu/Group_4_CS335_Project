@@ -8,12 +8,10 @@ int main()
     int arr[5] = {10, 7, 8, 9, 1};
     int f = arr[10];
     int g = arr[-2];
-    long c = 4 - (-2);
-    float h = 1.1;
+    int c = 4 - (-2);
     int error;
     int i ;
-    string a = "name";
-    if (1)
+    if (arr[0] == arr[1])
     {
         int z = 7;
     }

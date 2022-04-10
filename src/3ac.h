@@ -4,28 +4,36 @@ using namespace std;
  
 
 typedef struct opd{
-    opd()
-        {}
-
-    opd(string str):
-        s(str)
-        {}
-    opd(string str, tEntry* ptr):
-        s(str),
-        entry(ptr)
-        {}
-    
     string s;
     tEntry* entry;
+    opd(){}
+    opd(string str):
+        s(str){}
+    opd(string str, tEntry* ptr):
+        s(str),
+        entry(ptr){}
 }opd;
 
 typedef struct quad{
-    opd opd1;
+    int line_num;
     string op;
+    opd opd1;
     opd opd2;
     opd result;
-    int line_num;
 }quad;
+
+extern opd IF_opd;
+extern opd GOTO_opd;
+extern opd empty_opd;
+extern opd one_opd;
+extern opd zero_opd;
+extern opd switch_opd;
+extern opd star_opd;
+extern opd return_opd;
+extern opd func_opd;
+extern opd call_opd;
+extern vector<quad> global_emit;
+extern long long int instruction_num;
 
 void emit(opd opd1, string op, opd opd2, opd result, int line_num);
 void backpatch(vector<int>list, int line);
@@ -34,15 +42,6 @@ opd create_opd(string s,tEntry* entry);
 vector<int> merge(vector<int> list1, vector<int> list2);
 vector<int> makelist(int line_num);
 
-
-string create_tmp_var(string type, int offset, int scope);
-
-extern opd IF_opd,GOTO_opd,empty_opd,one_opd,zero_opd,switch_opd,star_opd,return_opd,func_opd,call_opd;
-extern vector<quad>global_emit;
-extern long long int instruction_num;
-
-void printemit();
-
 void initialise();
-
 void dump_emit_list();
+string create_tmp_var(string type, int offset, int scope);
