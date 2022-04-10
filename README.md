@@ -60,3 +60,17 @@ To clear all the files:
 ```bash 
 $ 1. make clean
 ```
+
+## Milestone-5 (ircode)
+
+Steps to run code:(this will make emit dump file which will contain 3ac code for the following input)
+```bash 
+$ 1. cd src
+$ 2. make all 
+$ 3. cd ..
+$ 4. ./bin/parser ./tests/test1.cpp -o graph.dot
+```
+To clear all the files:
+```bash
+$ 1. make clean
+```
