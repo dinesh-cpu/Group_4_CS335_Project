@@ -133,7 +133,7 @@ WS [ \t\v\n\f]
 int column = 0;
 int len_lexeme = 0;
 
-int yywrap()
+int yywrap(void)
 {
 	return 1;
 }
@@ -166,7 +166,7 @@ void comment()
 	char traversal, ending;
 
 loop:
-	while (( traversal = yyinput()) != '*' && traversal != 0){
+	while ((traversal = yyinput())!='*' && traversal != 0){
 		// multiline
 		if (traversal == '\n'){
 			column = 0;
@@ -201,13 +201,12 @@ loop:
 void row_column()
 {
 	int i;
-
-	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n'){
+	for(i = 0; yytext[i] != '\0'; i++)
+		if(yytext[i] == '\n'){
 			column = 0;
 			line++;
 		}
-		else if (yytext[i] == '\t'){
+		else if(yytext[i] == '\t'){
 			int extra_space = column%4;
             int col_shift = 4 - extra_space;
             column += col_shift;
@@ -218,5 +217,5 @@ void row_column()
 		}
 			
 	// lexeme size
-	len_lexeme=i;
+	len_lexeme = i;
 }
