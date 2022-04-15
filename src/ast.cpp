@@ -5,57 +5,37 @@
 #include "ast.h"
 #define vi vector<int>
 #define pb push_back
+#define ul unsigned long
 
 using namespace std;
 
 // ast output file
 extern fstream ast_output;
 
-void free_ast(node *root)
-{
-	// null is called
-	if (root == NULL){
-		return;
-	}
-
-	// clear child 
-	if(root->child1 != NULL){
-		free_ast(root->child1);
-	}
-	if(root->child2 != NULL){
-		free_ast(root->child2);
-	}
-	if(root->child3 != NULL){
-		free_ast(root->child3);
-	}
-
-	// free space
-	delete root;
-}
-
-void backpatch(vi  list, int line){
+void backpatch(vi goto_list, int line){
     int i = 0 ; 
-    while(i!=list.size()){
-        global_emit[list[i]].line_num=line;
+    while(i != goto_list.size()){
+        global_emit[goto_list[i]].line_num = line;
         i++;
     }
+	return;
 } 
 
-vi  merge(vi list_1, vi  list_2){
-    list_1.insert(list_1.end(), list_2.begin(), list_2.end());
-    return list_1;
+vi  merging(vi l1, vi  l2){
+    l1.insert(l1.end(), l2.begin(), l2.end());
+    return l1;
 }
 
 vi  makelist(int line_number){
-    vi list_1;
-    list_1.pb(line_number);
-    return list_1;
+    vi l1;
+    l1.pb(line_number);
+    return l1;
 }
 
-unsigned long NodeId()
+ul assign_ID()
 {
-	static unsigned long int nodeId = 0;
-	return ++nodeId;
+	static unsigned long int assign_ID = 0;
+	return ++assign_ID;
 }
 
 // make new node which has all childern's null
@@ -64,7 +44,7 @@ node *new_leaf_node(const string &val)
 	node *new_node = new node;
 
 	new_node->s = val;
-	new_node->id = NodeId();
+	new_node->id = assign_ID();
 
 	new_node->to_add_label = 1;
 	new_node->child1 = NULL;
@@ -83,7 +63,7 @@ node *new_leaf_node(const string &val)
 // initialize the new leaf node
 node *init_leaf_node(node *leaf_node)
 {
-	leaf_node->id = NodeId();
+	leaf_node->id = assign_ID();
 
 	leaf_node->to_add_label = 1;
 	leaf_node->child1 = NULL;
@@ -105,7 +85,7 @@ node *new_1_node(const string &display, node *node1)
 	node *new_node = new node;
 
 	new_node->s = display;
-	new_node->id = NodeId();
+	new_node->id = assign_ID();
 
 	new_node->to_add_label = 0;
 	new_node->child1 = node1;
@@ -133,7 +113,7 @@ node *new_2_node(const string &display, node *node1, node *node2)
 	node *new_node = new node;
 
 	new_node->s = display;
-	new_node->id = NodeId();
+	new_node->id = assign_ID();
 
 	new_node->to_add_label = 0;
 	new_node->child1 = node1;
@@ -165,7 +145,7 @@ node *new_2_Stringval_node(const string &display, node *node1, node *node2)
 	node *new_node = new node;
 
 	new_node->s = display;
-	new_node->id = NodeId();
+	new_node->id = assign_ID();
 
 	new_node->to_add_label = 0;
 	new_node->child1 = node1;
@@ -196,7 +176,7 @@ node *new_3_node(const string &display, node *node1, node *node2, node *node3)
 	node *new_node = new node;
 
 	new_node->s = display;
-	new_node->id = NodeId();
+	new_node->id = assign_ID();
 
 	new_node->to_add_label = 0;
 	new_node->child1 = node1;

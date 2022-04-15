@@ -1,21 +1,16 @@
 // ast
 #include <bits/stdc++.h>
 #include "3ac.h"
+#define vi vector<int>
+#define ul unsigned long
+
 using namespace std;
 
 typedef struct node
 {
-	node() : child1(NULL),
-			 child2(NULL),
-			 child3(NULL),
-			 to_add_label(1) 
-	{
-	}
-
 	// Abstract syntax tree
 	string s;
-	unsigned long int id;
-
+	unsigned long id;
 	int to_add_label;
 	struct node *child1;
 	struct node *child2;
@@ -33,24 +28,23 @@ typedef struct node
 
 	//3AC
 	int instr_num;
-
-	vector<int> nextlist;
-	vector<int> startlist; // continue
-	vector<int> endlist;   // break
-	vector<int> truelist;
-	vector<int> falselist;
-
+	vi nextlist;
+	vi continuelist; 
+	vi breaklist;
+	vi truelist;
+	vi falselist;
 	opd place;
 	int flag;     //for struct, array
 	int pointer;  //for deferencing
 } node;
 
-void backpatch(vector<int>list, int line);
-vector<int> merge(vector<int> list1, vector<int> list2);
-vector<int> makelist(int line_num);
-extern vector<opd> param_place;
 extern FILE *yyin;
-void free_ast(node *root);
+
+void backpatch(vi list, int line);
+vi merging(vi l1, vi l2);
+vi makelist(int line_num);
+ul assign_ID();
+extern vector<opd> param_place;
 node *init_leaf_node(node *leaf_node);
 node *new_leaf_node(const string &val);
 node *new_1_node(const string &display, node *node1);

@@ -370,8 +370,8 @@ argument_expression_list
 
 																								// lists
 																								$$->nextlist = $1->nextlist;
-																								$$->startlist = $1->startlist;
-																								$$->endlist = $1->endlist;
+																								$$->continuelist = $1->continuelist;
+																								$$->breaklist = $1->breaklist;
 																								$$->truelist = $1->truelist;
 																								$$->falselist = $1->falselist;
 
@@ -1138,7 +1138,7 @@ logical_and_expression
 																								// goto ___
 																								emit(GOTO_opd,"", empty_opd, empty_opd,-1);
 
-																								backpatch(merge($1->falselist ,$4->falselist), instruction_num);  
+																								backpatch(merging($1->falselist ,$4->falselist), instruction_num);  
 																								// var_0 = 0
 																								emit(empty_opd,"",zero_opd , $$->place, instruction_num);
 																								
@@ -1152,11 +1152,11 @@ emit_and
 	: logical_and_expression  {
 										$$=$1;
 	
-										$$->falselist=merge(makelist(instruction_num),$1->falselist);
+										$$->falselist=merging(makelist(instruction_num),$1->falselist);
 										// if var_1 == var_2 goto ___
 										emit(IF_opd,"==",$1->place,GOTO_opd,-1);
 														
-										$$->truelist=merge(makelist(instruction_num),$1->truelist);
+										$$->truelist=merging(makelist(instruction_num),$1->truelist);
 										// goto ____
 										emit(GOTO_opd,"",empty_opd,empty_opd,-1);		
 
@@ -1210,7 +1210,7 @@ logical_or_expression
 																							// goto __
 																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 																							
-																							backpatch( merge($1->truelist, $4->truelist) , instruction_num);  
+																							backpatch( merging($1->truelist, $4->truelist) , instruction_num);  
 																							// var_0 = 1
 																							emit(empty_opd,"",one_opd , $$->place, instruction_num);
 																							
@@ -1224,11 +1224,11 @@ emit_or
 	: logical_or_expression		{					
 									$$=$1;					
 					
-									$$->falselist= merge( makelist(instruction_num) , $1->falselist);
+									$$->falselist= merging( makelist(instruction_num) , $1->falselist);
 									// if var_0 == 0 goto ___
 									emit(IF_opd, "==", $1->place, GOTO_opd, -1);
 									
-									$$->truelist = merge( makelist(instruction_num), $1->truelist);
+									$$->truelist = merging( makelist(instruction_num), $1->truelist);
 									// goto ___
 									emit(GOTO_opd, "", empty_opd, empty_opd, -1);		
 								}
@@ -1842,19 +1842,19 @@ labeled_statement
 																									$$->truelist = $4->truelist;
 																									$$->falselist = $4->falselist;
 																									$$->nextlist = $4->nextlist;
-																									$$->startlist = $4->startlist;
-																									$$->endlist = $4->endlist;
+																									$$->continuelist = $4->continuelist;
+																									$$->breaklist = $4->breaklist;
 
 																									$$->place = $4->place;
 																								}
 	| case ':' statement 																		{	
 																									$$ = new_2_node("CASE", $1, $3);
 
-																									$$->nextlist = merge($1->nextlist, $3->nextlist);
+																									$$->nextlist = merging($1->nextlist, $3->nextlist);
 																									$$->truelist = $3->truelist;
 																									$$->falselist = $3->falselist;
-																									$$->endlist = $3->endlist;
-																									$$->startlist = $3->startlist;
+																									$$->breaklist = $3->breaklist;
+																									$$->continuelist = $3->continuelist;
 
 																								}
 
@@ -1863,8 +1863,8 @@ labeled_statement
 																									$$->nextlist = $3->nextlist;
 																									$$->truelist = $3->truelist;
 																									$$->falselist = $3->falselist;
-																									$$->endlist = $3->endlist;
-																									$$->startlist = $3->startlist;
+																									$$->breaklist = $3->breaklist;
+																									$$->continuelist = $3->continuelist;
 																								}
 	;
 	
@@ -1908,16 +1908,16 @@ declaration_list
 
 statement_list
 	: statement																					{	$$ = $1;
-																									$$->nextlist = merge( $1->nextlist, merge($1->truelist, $1->falselist));
+																									$$->nextlist = merging( $1->nextlist, merging($1->truelist, $1->falselist));
 																								}
 
 	| statement_list M statement																	{	
 																										$$ = new_2_node( "statement_list" , $1, $3);
 																										backpatch( $1->nextlist , $2 );
 
-																										$$->startlist = merge($1->startlist, $3->startlist);
-																										$$->endlist=merge($3->endlist, $1->endlist);
-																										$$->nextlist = merge($3->nextlist, merge($3->truelist, $3->falselist));
+																										$$->continuelist = merging($1->continuelist, $3->continuelist);
+																										$$->breaklist=merging($3->breaklist, $1->breaklist);
+																										$$->nextlist = merging($3->nextlist, merging($3->truelist, $3->falselist));
 																										
 																									}
 	;
@@ -1933,7 +1933,7 @@ selection_statement
 															$$ = new_2_node("IF", $3, $6);
 															backpatch( $3->truelist , $5);
 
-															$$->nextlist = merge( $3->falselist , $6->nextlist);
+															$$->nextlist = merging( $3->falselist , $6->nextlist);
 															
 														}												
 	| IF '(' E1 ')' M statement N ELSE M statement   	{
@@ -1942,13 +1942,13 @@ selection_statement
 															backpatch($3->truelist , $5);
 															backpatch($3->falselist , $9);
 
-															$$->nextlist = merge($6->nextlist , $7->nextlist);
-															$$->nextlist = merge($$->nextlist , $10->nextlist);
+															$$->nextlist = merging($6->nextlist , $7->nextlist);
+															$$->nextlist = merging($$->nextlist , $10->nextlist);
 
 															}
 	| SWITCH '(' S2 ')' statement							{
 																$$ = new_2_node("SWITCH-CASE", $3, $5);
-																$$->nextlist=merge($5->nextlist , $5->endlist);
+																$$->nextlist=merging($5->nextlist , $5->breaklist);
 															}
 	;
 
@@ -1964,12 +1964,12 @@ E1
 							$$ = $1;
 							
 							$$->truelist = makelist(instruction_num);
-							$$->truelist = merge($$->truelist,$1->truelist);
+							$$->truelist = merging($$->truelist,$1->truelist);
 							// if var_0 != 0 goto ___
 							emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
 																
 							$$->falselist = makelist(instruction_num);
-							$$->falselist = merge($$->falselist , $1->falselist);
+							$$->falselist = merging($$->falselist , $1->falselist);
 							// goto ___
 							emit(GOTO_opd , "" , empty_opd , empty_opd , -1);
 						}
@@ -1980,12 +1980,12 @@ E2
 									$$=$1;
 									
 									$$->truelist = makelist(instruction_num);
-									$$->truelist = merge($$->truelist , $1->truelist);
+									$$->truelist = merging($$->truelist , $1->truelist);
 									// if var_0 != 0 goto ___
 									emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
 																		
 									$$->falselist = makelist(instruction_num);
-									$$->falselist = merge($$->falselist , $1->falselist);
+									$$->falselist = merging($$->falselist , $1->falselist);
 									// goto ___
 									emit(GOTO_opd, "", empty_opd, empty_opd, -1);
 								}
@@ -2031,10 +2031,10 @@ iteration_statement
 	: WHILE M '(' E1 ')' M 	statement														{
 																								$$ = new_2_node("WHILE", $4, $7);
 																								
-																								backpatch($7->startlist , $2);
+																								backpatch($7->continuelist , $2);
 																								backpatch($4->truelist , $6);
 
-																								$$->nextlist = merge( $4->falselist , $7->endlist);
+																								$$->nextlist = merging( $4->falselist , $7->breaklist);
 																								// goto ___
 																								emit(GOTO_opd , "" , empty_opd , empty_opd , $2);
 																							}
@@ -2042,19 +2042,19 @@ iteration_statement
 																								$$ = new_2_node("DO-WHILE", $3, $7);
 																								
 																								backpatch( $8->nextlist, $2);
-																								backpatch( $3->startlist, $6);
+																								backpatch( $3->continuelist, $6);
 																								backpatch( $7->truelist, $8->instr_num);
 
-																								$$->nextlist = merge( $3->endlist, $7->falselist);
+																								$$->nextlist = merging( $3->breaklist, $7->falselist);
 																								
 																							}
 	| FOR '(' expression_statement M E2  ')' M statement									{
 																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, NULL), $8);
 																								
 																								backpatch($8->nextlist,$4);
-																								backpatch($8->startlist,$4);
+																								backpatch($8->continuelist,$4);
 
-																								$$->nextlist=merge($8->endlist,$5->falselist);
+																								$$->nextlist=merging($8->breaklist,$5->falselist);
 
 																								backpatch($5->truelist,$7);
 																								// goto ____
@@ -2064,9 +2064,9 @@ iteration_statement
 																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, $7), $11);
 																								
 																								backpatch( $11->nextlist , $6);
-																								backpatch( $11->startlist , $6);
+																								backpatch( $11->continuelist , $6);
 
-																								$$->nextlist = merge( $5->falselist , $11->endlist );
+																								$$->nextlist = merging( $5->falselist , $11->breaklist );
 																								backpatch( $5->truelist , $10);
 																								backpatch( $8->nextlist , $4);
 																								// goto ___
@@ -2091,7 +2091,7 @@ jump_statement
 	| CONTINUE ';'				{
 									$$ = new_leaf_node("CONTINUE");
 
-									$$->startlist=makelist(instruction_num);
+									$$->continuelist=makelist(instruction_num);
 									// goto ___
 									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 								
@@ -2099,7 +2099,7 @@ jump_statement
 	| BREAK ';'					{
 									$$ = new_leaf_node("BREAK");
 
-									$$->endlist=makelist(instruction_num);
+									$$->breaklist=makelist(instruction_num);
 									// goto ___
 									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 								}
@@ -2117,7 +2117,7 @@ jump_statement
 
 program
 	: translation_unit  					  													{
-																									free_ast($1);
+																									
 																								}
 	;
 
