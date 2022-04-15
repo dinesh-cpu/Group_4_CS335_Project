@@ -9,7 +9,7 @@
 using namespace std;
 
 // ast output file
-extern fstream outfile;
+extern fstream ast_output;
 
 void free_ast(node *root)
 {
@@ -118,11 +118,11 @@ node *new_1_node(const string &display, node *node1)
 	new_node->val_type = -1;
 	new_node->num = 0;
 
-	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
+	ast_output << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->to_add_label)
-		outfile << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
+		ast_output << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
 	if (node1)
-		outfile << "\t" << new_node->id << " -> " << node1->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node1->id << ";\n";
 
 	return new_node;
 }
@@ -146,15 +146,15 @@ node *new_2_node(const string &display, node *node1, node *node2)
 	new_node->val_type = -1;
 	new_node->num = 0;
 
-	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
+	ast_output << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->to_add_label)
-		outfile << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
+		ast_output << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
 	if (node2 && node2->to_add_label)
-		outfile << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
+		ast_output << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
 	if (node1)
-		outfile << "\t" << new_node->id << " -> " << node1->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node1->id << ";\n";
 	if (node2)
-		outfile << "\t" << new_node->id << " -> " << node2->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node2->id << ";\n";
 
 	return new_node;
 }
@@ -178,15 +178,15 @@ node *new_2_Stringval_node(const string &display, node *node1, node *node2)
 	new_node->val_type = -1;
 	new_node->num = 0;
 
-	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
+	ast_output << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->to_add_label)
-		outfile << "\t" << node1->id << " [label=" << node1->s << "];\n";
+		ast_output << "\t" << node1->id << " [label=" << node1->s << "];\n";
 	if (node2 && node2->to_add_label)
-		outfile << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
+		ast_output << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
 	if (node1)
-		outfile << "\t" << new_node->id << "-> " << node1->id << ";\n";
+		ast_output << "\t" << new_node->id << "-> " << node1->id << ";\n";
 	if (node2)
-		outfile << "\t" << new_node->id << "-> " << node2->id << ";\n";
+		ast_output << "\t" << new_node->id << "-> " << node2->id << ";\n";
 
 	return new_node;
 }
@@ -209,19 +209,19 @@ node *new_3_node(const string &display, node *node1, node *node2, node *node3)
 	new_node->val_type = -1; // int 1,long 2,float 3,double 4
 	new_node->num = 0;
 
-	outfile << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
+	ast_output << "\t" << new_node->id << " [label=\"" << new_node->s << "\"];\n";
 	if (node1 && node1->to_add_label)
-		outfile << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
+		ast_output << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
 	if (node2 && node2->to_add_label)
-		outfile << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
+		ast_output << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
 	if (node3 && node3->to_add_label)
-		outfile << "\t" << node3->id << " [label=\"" << node3->s << "\"];\n";
+		ast_output << "\t" << node3->id << " [label=\"" << node3->s << "\"];\n";
 	if (node1)
-		outfile << "\t" << new_node->id << " -> " << node1->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node1->id << ";\n";
 	if (node2)
-		outfile << "\t" << new_node->id << " -> " << node2->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node2->id << ";\n";
 	if (node3)
-		outfile << "\t" << new_node->id << " -> " << node3->id << ";\n";
+		ast_output << "\t" << new_node->id << " -> " << node3->id << ";\n";
 
 	return new_node;
 }
@@ -233,16 +233,16 @@ void make_children(node *node_root, node *node1, node *node2, node *node3)
 	node_root->child3 = node3;
 
 	if (node1 && node1->to_add_label)
-		outfile << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
+		ast_output << "\t" << node1->id << " [label=\"" << node1->s << "\"];\n";
 	if (node2 && node2->to_add_label)
-		outfile << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
+		ast_output << "\t" << node2->id << " [label=\"" << node2->s << "\"];\n";
 	if (node3 && node3->to_add_label)
-		outfile << "\t" << node3->id << " [label=\"" << node3->s << "\"];\n";
+		ast_output << "\t" << node3->id << " [label=\"" << node3->s << "\"];\n";
 	if (node1)
-		outfile << "\t" << node_root->id << " -> " << node1->id << ";\n";
+		ast_output << "\t" << node_root->id << " -> " << node1->id << ";\n";
 	if (node2)
-		outfile << "\t" << node_root->id << " -> " << node2->id << ";\n";
+		ast_output << "\t" << node_root->id << " -> " << node2->id << ";\n";
 	if (node3)
-		outfile << "\t" << node_root->id << " -> " << node3->id << ";\n";
+		ast_output << "\t" << node_root->id << " -> " << node3->id << ";\n";
 
 }

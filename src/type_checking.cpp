@@ -2,7 +2,7 @@
 #include "symbol_table.h"
 #include <bits/stdc++.h>
 using namespace std;
-
+ 
 bool isInteger(string type)
 {
     if (type == "int" || type == "short" || type == "long" || type == "long long" || type == "long long int" || type == "long int" || type == "short int" || type == "unsigned int" || type == "unsigned short" || type == "unsigned long" || type == "unsigned long long" || type == "unsigned long long int" || type == "unsigned long int" || type == "unsigned short int" || type == "signed int" || type == "signed short" || type == "signed long" || type == "signed long long" || type == "signed long long int" || type == "signed long int" || type == "signed short int")

@@ -53,35 +53,35 @@ void emit(opd operand_1, string operator_1, opd operand_2, opd result, int line_
 }
 
 void dump_emit_list(){
-    fstream outfile;
-    outfile.open("ir_code.txt", fstream::out);
+    fstream ir_output;
+    ir_output.open("ir_code.txt", fstream::out);
     int i= 0 ;  
     while(i!=global_emit.size()){
         string temp = to_string(i) ;                                            
         if(global_emit[i].result.s == "goto"){
-            outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s<<" "<<global_emit[i].op<<" 0 "<<global_emit[i].result.s<<" "<<global_emit[i].line_num<<endl;
+            ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s<<" "<<global_emit[i].op<<" 0 "<<global_emit[i].result.s<<" "<<global_emit[i].line_num<<endl;
         }
         else if(global_emit[i].opd1.s == "return"){
-             outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "func"){
-             outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "call"){
             // cout << "call" <<endl;
-             outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "*"){
-            outfile<< temp  + "     " <<global_emit[i].opd1.s <<global_emit[i].result.s<<" = "<<global_emit[i].opd2.s <<endl;
+            ir_output<< temp  + "     " <<global_emit[i].opd1.s <<global_emit[i].result.s<<" = "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].result.s == ""){
-            outfile<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].line_num<<endl;
+            ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].line_num<<endl;
         }
         else if(global_emit[i].op == ""){
-            outfile<< temp + "     " <<global_emit[i].result.s<<" = "<<global_emit[i].opd2.s <<endl;
+            ir_output<< temp + "     " <<global_emit[i].result.s<<" = "<<global_emit[i].opd2.s <<endl;
         } 
         else 
-            outfile<< temp  + "     " <<global_emit[i].result.s<<" = "<<global_emit[i].opd1.s<<" "<<global_emit[i].op<<" "<<global_emit[i].opd2.s<<endl;
+            ir_output<< temp  + "     " <<global_emit[i].result.s<<" = "<<global_emit[i].opd1.s<<" "<<global_emit[i].op<<" "<<global_emit[i].opd2.s<<endl;
         i++ ; 
     }
 }

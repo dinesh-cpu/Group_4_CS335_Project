@@ -13,7 +13,7 @@
 using namespace std;
 
 extern int line;
-fstream outfile;
+fstream ast_output;
 
 int yyerror(const string&);
 int yylex();
@@ -2208,11 +2208,11 @@ int main(int argc, char *argv[])
 
 
 	// for writing in dotfile
-	outfile.open(argv[3], fstream::out);
-	outfile << "digraph tree {\n" ;
+	ast_output.open(argv[3], fstream::out);
+	ast_output << "digraph tree {\n" ;
 	yyparse();
-    outfile << "}";
-	outfile.close();
+    ast_output << "}";
+	ast_output.close();
 
 
 	// for dumping symtable

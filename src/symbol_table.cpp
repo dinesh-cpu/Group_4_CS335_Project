@@ -1,5 +1,5 @@
 // symbol table
-
+ 
 #include <bits/stdc++.h>
 #include "symbol_table.h"
 

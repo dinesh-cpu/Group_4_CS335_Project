@@ -1,6 +1,6 @@
 #include<bits/stdc++.h>
 using namespace std;
-
+ 
 extern string type_var;
 
 bool isInteger(string type);
