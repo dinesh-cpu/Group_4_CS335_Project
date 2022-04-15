@@ -3,6 +3,8 @@
 
 #include <bits/stdc++.h>
 #include "ast.h"
+#define vi vector<int>
+#define pb push_back
 
 using namespace std;
 
@@ -29,6 +31,25 @@ void free_ast(node *root)
 
 	// free space
 	delete root;
+}
+
+void backpatch(vi  list, int line){
+    int i = 0 ; 
+    while(i!=list.size()){
+        global_emit[list[i]].line_num=line;
+        i++;
+    }
+} 
+
+vi  merge(vi list_1, vi  list_2){
+    list_1.insert(list_1.end(), list_2.begin(), list_2.end());
+    return list_1;
+}
+
+vi  makelist(int line_number){
+    vi list_1;
+    list_1.pb(line_number);
+    return list_1;
 }
 
 unsigned long NodeId()

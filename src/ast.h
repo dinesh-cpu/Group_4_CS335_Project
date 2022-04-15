@@ -45,6 +45,9 @@ typedef struct node
 	int pointer;  //for deferencing
 } node;
 
+void backpatch(vector<int>list, int line);
+vector<int> merge(vector<int> list1, vector<int> list2);
+vector<int> makelist(int line_num);
 extern vector<opd> param_place;
 extern FILE *yyin;
 void free_ast(node *root);

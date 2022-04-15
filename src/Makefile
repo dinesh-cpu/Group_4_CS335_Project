@@ -20,4 +20,4 @@ clean:
 	rm -rf ../bin/parser
 	rm -rf ../*.dot
 	rm -rf ../*.pdf
-	rm -rf ../emit_list_dump.txt
+	rm -rf ../ir_code.txt

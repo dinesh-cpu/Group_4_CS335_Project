@@ -2,7 +2,6 @@
 #include "symbol_table.h"
 using namespace std;
  
-
 typedef struct opd{
     string s;
     tEntry* entry;
@@ -36,11 +35,7 @@ extern vector<quad> global_emit;
 extern long long int instruction_num;
 
 void emit(opd opd1, string op, opd opd2, opd result, int line_num);
-void backpatch(vector<int>list, int line);
 opd create_opd(string s,tEntry* entry);
-
-vector<int> merge(vector<int> list1, vector<int> list2);
-vector<int> makelist(int line_num);
 
 void initialise();
 void dump_emit_list();

@@ -38,7 +38,6 @@ void initialise(){
     call_opd = create_opd("call",find_entry(scope_st,"__CALL__"));
 }
 
-
 string create_tmp_var(string type,int offset,int scope){
     string temp = to_string(tmp_variable) ; 
     string temp_label = "__var__"+temp;
@@ -48,34 +47,14 @@ string create_tmp_var(string type,int offset,int scope){
     return label;
 }
 
-void backpatch(vi  list, int line){
-    int i = 0 ; 
-    while(i!=list.size()){
-        global_emit[list[i]].line_num=line;
-        i++;
-    }
-}
-
 void emit(opd operand_1, string operator_1, opd operand_2, opd result, int line_num){
     quad tmp;
     tmp.opd1 = operand_1 ,  tmp.opd2 = operand_2 , tmp.result = result , tmp.op = operator_1 ,  tmp.line_num = line_num ,  global_emit.pb(tmp) , instruction_num++;
 }
 
-
-vi  merge(vi list_1, vi  list_2){
-    list_1.insert(list_1.end(), list_2.begin(), list_2.end());
-    return list_1;
-}
-
-vi  makelist(int line_number){
-    vi list_1;
-    list_1.pb(line_number);
-    return list_1;
-}
-
 void dump_emit_list(){
     fstream outfile;
-    outfile.open("emit_list_dump.txt", fstream::out);
+    outfile.open("ir_code.txt", fstream::out);
     int i= 0 ;  
     while(i!=global_emit.size()){
         string temp = to_string(i) ;                                            
