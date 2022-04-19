@@ -10,9 +10,11 @@ typedef struct table_entry
     int size;
     int scope;
     int init; 
+    int struct_flag=0;
     string key;
     string type;
     long offset;
+    
 } tEntry;
 
 extern int curr_scope;

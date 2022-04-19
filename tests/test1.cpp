@@ -17,20 +17,16 @@ int main()
     int error;
     int k = 10;
     int i ;
-    char op = 'c';
-    string gone = "gg";
     int y = number();
     int x = Array(arr, y);
     if (arr[0] == arr[1] )
     {
         int z = 7;
-        int w = (4 == 4) ? (5) : (7);
+        int w ;
     }
     else
     {
         int value = 2;
     }
-    c--;
-    ++c;
     return 0;
 }

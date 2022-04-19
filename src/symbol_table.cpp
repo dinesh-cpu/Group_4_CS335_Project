@@ -63,6 +63,7 @@ tEntry *entry(string key, string type, int init, int size, long offset ,int scop
 {
     tEntry *new_entry = new tEntry();
     new_entry->type = type, new_entry->key = key, new_entry->size = size, new_entry->offset = offset ,new_entry->scope = scope, new_entry->init = init;
+    new_entry->struct_flag=0;
     return new_entry;
 }
 
@@ -70,7 +71,7 @@ tEntry *entry(string key, string type, int init, int size, long offset ,int scop
 tEntry *make_struct_entry(string key, string type, long offset ,int size)
 {
     tEntry *s_entry = new tEntry();
-    s_entry->key = key, s_entry->size = size, s_entry->offset = offset ,s_entry->type = type;
+    s_entry->key = key, s_entry->size = size, s_entry->offset = offset ,s_entry->type = type;s_entry->struct_flag=1;
     return s_entry;
 }
 

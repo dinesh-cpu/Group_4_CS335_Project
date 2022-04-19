@@ -2226,6 +2226,7 @@ int main(int argc, char *argv[])
 	entry_map.clear();
 
 	dump_emit_list();
+//	print_asm("codegem.asm");
 
     return 0;
 }
