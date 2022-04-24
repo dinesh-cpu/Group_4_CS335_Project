@@ -285,7 +285,6 @@ void get_arr_element(pair<string, tEntry *> temp_var, string reg_name)
     {
         // both works for normal array and struct array
         insert_asm("li $t7, " + to_string(temp_var.second->size));
-        insert_asm("mflo $t7");
         insert_asm("li $s6, " + to_string(temp_var.second->offset)); 
         insert_asm("add $s6, $s6, $t7");
         insert_asm("sub $s7, $fp, $s6"); 
@@ -295,7 +294,6 @@ void get_arr_element(pair<string, tEntry *> temp_var, string reg_name)
     {
         // both works for normal array and struct array
         insert_asm("li $t7, " + to_string(temp_var.second->size));
-        insert_asm("mflo $t7");
         insert_asm("li $s6, " + to_string(temp_var.second->offset));
         insert_asm("addi $s6, " + to_string(REG_SPACE));
         insert_asm("sub $s7, $fp, $s6");

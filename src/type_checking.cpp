@@ -361,8 +361,6 @@ string valid_assignment(string t1, string t2)
     if(t1[t1.size() - 1] == '*' && t2[t2.size() - 1] == '*'){
         return "warning";
     }
-    return "";
-    
 }
     
 string assignment_expr(string t1, string t2, string opr)

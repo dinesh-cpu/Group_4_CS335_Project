@@ -142,6 +142,7 @@ void yyerror(string s){
 	cout << "ERROR: Line number " << line << ": " << s << "\n";
 }
 
+// tab size is taken as 4
 void single_comment(){
 	char traversal;
 	while((traversal = yyinput())!= '\n' && traversal != 0){
@@ -190,6 +191,7 @@ loop:
 	if ((ending = yyinput()) != '/' && traversal != 0)
 	{
 		column += 1;
+		// put the read character back
 		unput(ending);
 		goto loop;
 	}

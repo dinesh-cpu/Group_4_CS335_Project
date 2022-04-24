@@ -18,6 +18,8 @@ void init_symtable()
     insert_entry("__RETURN__","key",1,8,-1,0);
     insert_entry("__FUNC__","key",1,8,-1,0);
     insert_entry("__CALL__","key",1,8,-1,0);
+    insert_entry("__PRINTF__","key",1,8,-1,0);
+    insert_entry("__SCANF__","key",1,8,-1,0);
 }
 
 //make files
@@ -63,7 +65,6 @@ tEntry *entry(string key, string type, int init, int size, long offset ,int scop
 {
     tEntry *new_entry = new tEntry();
     new_entry->type = type, new_entry->key = key, new_entry->size = size, new_entry->offset = offset ,new_entry->scope = scope, new_entry->init = init;
-    new_entry->struct_flag=0;
     return new_entry;
 }
 
@@ -71,7 +72,7 @@ tEntry *entry(string key, string type, int init, int size, long offset ,int scop
 tEntry *make_struct_entry(string key, string type, long offset ,int size)
 {
     tEntry *s_entry = new tEntry();
-    s_entry->key = key, s_entry->size = size, s_entry->offset = offset ,s_entry->type = type;s_entry->struct_flag=1;
+    s_entry->key = key, s_entry->size = size, s_entry->offset = offset ,s_entry->type = type;
     return s_entry;
 }
 

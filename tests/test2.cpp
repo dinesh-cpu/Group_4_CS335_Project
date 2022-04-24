@@ -20,7 +20,7 @@ int main()
     int k = 1;
     int sum;
     arr[1] = c;
-    printf("%d", arr[0]);
+    printf("%d",k);
 
     if (4 > 2)
     {

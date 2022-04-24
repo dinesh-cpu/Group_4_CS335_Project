@@ -17,16 +17,22 @@ int main()
     int error;
     int k = 10;
     int i ;
+    char op = 'c';
+    string gone = "gg";
     int y = number();
     int x = Array(arr, y);
+    scanf("%d", &i);
+    printf("let %d %d", k, i);
     if (arr[0] == arr[1] )
     {
         int z = 7;
-        int w ;
+        int w = (4 == 4) ? (5) : (7);
     }
     else
     {
         int value = 2;
     }
+    c--;
+    ++c;
     return 0;
 }

@@ -1264,8 +1264,8 @@ conditional_expression
 																						         	emit(GOTO_opd,"",empty_opd,empty_opd,instruction_num+2);
 																						         	backpatch( $8->truelist,  instruction_num + 2);					
 																						         	backpatch( $8->falselist, instruction_num + 2);						
-																						         	backpatch( $4->truelist , $5->instr_num);					
-																						         	backpatch( $4->falselist , $5->instr_num);					
+																						         	backpatch( $4->truelist , $5->instruction_number);					
+																						         	backpatch( $4->falselist , $5->instruction_number);					
 																						         	backpatch( $5->nextlist, instruction_num);
 																									// var_0 = var_1
 																						         	emit(empty_opd,"",$4->place , $$->place, instruction_num);
@@ -1276,7 +1276,7 @@ conditional_expression
 N
 	:%empty 			{
 							$$ = new node();
-							$$->instr_num = instruction_num;														
+							$$->instruction_number = instruction_num;														
 							$$->nextlist = makelist(instruction_num);
 							
 							// goto ___
@@ -2008,23 +2008,45 @@ delete_stmt
 	;
 
 printf_stmt
-	: PRINTF '(' STRING_VAL ')' ';'   															{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);}
-	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';'   										{$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);}
+	: PRINTF '(' STRING_VAL ')' ';'   															{
+																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);
+																									// printf stringval
+																									emit(PRINTF_opd, "", opd($3), empty_opd, instruction_num);
+																								}
+	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';'   										{
+																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);
+																									emit(PRINTF_opd, "", opd($3), zero_opd, instruction_num);
+																								}
 
 printf_helper
-	: IDENTIFIER                                                       							{$$=new_leaf_node($1);}
-	| IDENTIFIER ',' printf_helper                                              				{$$ = new_2_node(",", new_leaf_node($1),$3);}
-	| IDENTIFIER '[' CONSTANT ']'                                               				{$$ = new_2_node("[]", new_leaf_node($1), new_leaf_node($3));}
+	: IDENTIFIER                                                       							{
+																									$$=new_leaf_node($1);
+																									printf_helpers.push_back($1);
+																								}
+	| IDENTIFIER ',' printf_helper                                              				{
+																									$$ = new_2_node(",", new_leaf_node($1),$3);
+																									printf_helpers.push_back($1);
+																								}
+	| IDENTIFIER '[' CONSTANT ']'                                               				{
+																									$$ = new_2_node("[]", new_leaf_node($1), new_leaf_node($3));
+																								}
 	| IDENTIFIER '[' CONSTANT ']' ',' printf_helper                             				{$$ = new_3_node("[]",new_leaf_node($1),new_leaf_node($3),$6);}
     ;
 
 scanf_stmt
-	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' 											{$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);}
+	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' 											{
+																									$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);
+																									emit(SCANF_opd, "", opd($3), zero_opd, instruction_num);
+																								}
 	;
 
 scanf_helper
-	: '&' IDENTIFIER                                                                            {$$=new_leaf_node($2);}
-	| '&' IDENTIFIER ','  scanf_helper                                                          {$$ = new_2_node(",", new_leaf_node($2),$4);}
+	: '&' IDENTIFIER                                                                            {$$=new_leaf_node($2);
+																									scanf_helpers.push_back($2);
+																								}
+	| '&' IDENTIFIER ','  scanf_helper                                                          {$$ = new_2_node(",", new_leaf_node($2),$4);
+																									scanf_helpers.push_back($2);
+																								}
     ;	
 	
 iteration_statement 
@@ -2043,7 +2065,7 @@ iteration_statement
 																								
 																								backpatch( $8->nextlist, $2);
 																								backpatch( $3->continuelist, $6);
-																								backpatch( $7->truelist, $8->instr_num);
+																								backpatch( $7->truelist, $8->instruction_number);
 
 																								$$->nextlist = merging( $3->breaklist, $7->falselist);
 																								
@@ -2105,13 +2127,13 @@ jump_statement
 								}
 	| RETURN ';'				{
 									$$ = new_1_node("RETURN", NULL);
-									// return ____
+									// return
 									emit(return_opd,"",empty_opd,empty_opd,-1);
 								}
 	| RETURN expression ';'		{
 									$$ = new_1_node("RETURN", $2);
 									// return var_0
-									emit(return_opd,"",$2->place,empty_opd,-1);
+									emit(return_opd, "", $2->place, empty_opd,-1);
 								}
 	;
 
@@ -2162,6 +2184,8 @@ string struct_name;
 std::unordered_map <std::string, sym_table_t*> struct_symbol_tables;
 string func_params;
 vector<opd> param_place;
+vector<string> printf_helpers;
+vector<string> scanf_helpers;
 string func_args;
 
 sym_table_t sym_table;

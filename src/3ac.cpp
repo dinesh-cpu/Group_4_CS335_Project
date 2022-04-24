@@ -19,6 +19,8 @@ opd star_opd;       // *
 opd return_opd;      // for return 
 opd func_opd;       // for func
 opd call_opd;     // function call
+opd PRINTF_opd;      // printf
+opd SCANF_opd;       // scanf
 
 opd create_opd(string s,tEntry* entry){
      opd tmp;
@@ -36,6 +38,8 @@ void initialise(){
     return_opd = create_opd("return",find_entry(scope_st,"__RETURN__"));
     func_opd = create_opd("func",find_entry(scope_st,"__FUNC__"));
     call_opd = create_opd("call",find_entry(scope_st,"__CALL__"));
+    PRINTF_opd = create_opd("printf" ,find_entry(scope_st,"__PRINTF__"));
+    SCANF_opd = create_opd("scanf" ,find_entry(scope_st,"__SCANF__"));
 }
 
 string create_tmp_var(string type,int offset,int scope){
@@ -69,6 +73,24 @@ void dump_emit_list(){
         }
         else if(global_emit[i].opd1.s == "call"){
             // cout << "call" <<endl;
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
+        }
+        else if(global_emit[i].opd1.s == "printf" && global_emit[i].result.s == "0"){
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s << " from ";
+             for(int i = printf_helpers.size() - 1; i>0; i--){
+                 ir_output << printf_helpers[i] << ", ";
+             }
+             ir_output << printf_helpers[0] << endl;
+        }
+        else if(global_emit[i].opd1.s == "scanf"){
+             ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s << " from ";
+
+             for(int i = scanf_helpers.size() - 1; i>0; i--){
+                 ir_output << scanf_helpers[i] << ", ";
+             }
+             ir_output << scanf_helpers[0] << endl;
+        }
+        else if(global_emit[i].opd1.s == "printf"){
              ir_output<< temp + "     " <<global_emit[i].opd1.s<<" "<<global_emit[i].opd2.s <<endl;
         }
         else if(global_emit[i].opd1.s == "*"){
