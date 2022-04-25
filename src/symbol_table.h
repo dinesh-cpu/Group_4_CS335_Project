@@ -3,7 +3,6 @@
 using namespace std;
  
 #define sym_table_t unordered_map<string, tEntry *>
-#define OFFSET_ALIGN 8
 
 typedef struct table_entry
 {

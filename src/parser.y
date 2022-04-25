@@ -226,6 +226,7 @@ postfix_expression
 																									$$->key = $1->key;
 																									$$->val_type = $1->val_type;
 																									$$->num = $1->num;
+																									$$->place = opd($1->key,find_entry(scope_st,$1->key));
 
 																									string funcname = $$->type+" "+$1->key;
 
@@ -246,11 +247,12 @@ postfix_expression
 																											    if( param1[i].substr( 0, arg1[i].size()) != arg1[i]){
 																											       yyerror("Invalid arguments");
 																												}										
-																												opd parameters = create_opd( "__paramama__"+to_string(i), param_place[i].entry);
+																												opd parameters = create_opd( "__argument__"+to_string(i), param_place[i].entry);
 																												emit( empty_opd , "" , param_place[i] , parameters , -1);
 																											}
 																											// call function
 																											emit(call_opd , "" , $1->place , empty_opd , -1);
+																											param_place.clear();
 																										}
 																										else 
 																											yyerror("Invalid number of arguments");
@@ -363,6 +365,7 @@ argument_expression_list
 																								$$=$1;
 																							 	
 																								func_args = $1->type;
+																								$$->init = $1->init;
 																								$$->key = $1->key;
 																								$$->val_type = $1->val_type;
 																								$$->num = $1->num;
@@ -382,7 +385,7 @@ argument_expression_list
 	| argument_expression_list ',' assignment_expression 									{
 																								$$=new_2_node(",", $1 , $3);
 
-																								func_args=func_args +" ,"+$3->type;
+																								func_args = func_args + " ," + $3->type;
 																							 	$$->type = "";
 																							 	if($1->init == 1 && $3->init == 1)
 																								 	$$->init = 1;
@@ -1584,11 +1587,11 @@ struct_declarator_list
 																									else{
 																										insert_struct_entry(struct_name, $1->key, $1->type, struct_offset, $1->size);
 																										align_struct_offset( getSize($1->type) );
-																										if(($$->size)%OFFSET_ALIGN == 0){
+																										if(($$->size)%4 == 0){
             																						
             																							}
             																							else {
-            																							    $$->size = ($$->size - ($$->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
+            																							    $$->size = ($$->size - ($$->size)%4) + 4;
             																							} 
 																									}
 																								}

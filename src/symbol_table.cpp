@@ -212,11 +212,11 @@ int struct_size(string s)
         struct_t = table->second;
         for (auto table2 : *struct_t)
         {
-            if((table2.second->size)%OFFSET_ALIGN == 0){
+            if((table2.second->size)%4 == 0){
                 size += table2.second->size;
             }
             else {
-                size += (table2.second->size - (table2.second->size)%OFFSET_ALIGN) + OFFSET_ALIGN;
+                size += (table2.second->size - (table2.second->size)%4) + 4;
             } 
         }
     }
@@ -320,18 +320,18 @@ int getSize(string s)
 
 void align_offset(int size){
     offset += size;
-    if( offset%OFFSET_ALIGN == 0)
+    if( offset%4 == 0)
         return;
     else{
-        offset = (offset - (offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+        offset = (offset - (offset%4)) + 4; 
     }
 }
 
 void align_struct_offset(int size){
     struct_offset+=size;
-    if(struct_offset%OFFSET_ALIGN == 0)
+    if(struct_offset%4 == 0)
         return;
     else{
-        struct_offset = (struct_offset - (struct_offset%OFFSET_ALIGN)) + OFFSET_ALIGN; 
+        struct_offset = (struct_offset - (struct_offset%4)) + 4; 
     }
 }
