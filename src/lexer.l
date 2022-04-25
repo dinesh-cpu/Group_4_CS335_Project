@@ -161,7 +161,7 @@ void single_comment(){
 	line++;
 }
 
-
+// for the multi line comment starts with /*
 void comment()
 {
 	char traversal, ending;
