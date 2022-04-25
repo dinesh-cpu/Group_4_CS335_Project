@@ -369,6 +369,9 @@ postfix_expression
 																								$$->val_type = $1->val_type;
 																								$$->num = $1->num-1;
 																								$$->init = $1->init;
+																								if($$->init != 1){
+																									yyerror("First initialise the variable " + $1->key);
+																								}
 																								$$->type = $1->type;
 
 																								string typecheck = postfix_expr($1 -> type);
@@ -1809,7 +1812,6 @@ parameter_declaration
 																									else
 																									    func_params += "," + $2->type + " " + $2->key;
 
-																									$$ = new_2_node("parameter_declaration", $1, $2);
 																								}
 
 	| declaration_specifiers abstract_declarator 												{	$$=new_2_node("parameter_declaration",$1,$2); }

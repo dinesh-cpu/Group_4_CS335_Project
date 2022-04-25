@@ -5,7 +5,9 @@ int sum(int a, int b, int c, int d, int e){
 int main(){
     int a;
     int b;
+    
     a = 5;
     b = sum(a, a, a, a ,a);
+    printf("%d", b);
     return 0;
 }
