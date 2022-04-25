@@ -19,6 +19,7 @@ typedef struct node
 	string key;
 	int size;
 	int val_type; // 1 int, 2 long, 3 float, 4 double, 5 long long
+	int isidentifier;
 	double num;
 	int instruction_number;
 	vi nextlist, truelist, falselist, continuelist, breaklist, caselist;

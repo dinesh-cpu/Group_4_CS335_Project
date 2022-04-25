@@ -58,7 +58,7 @@ int yylex();
 %type<Node> declaration specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
 %type<Node> declaration_list declarator struct_declaration struct_declaration_list pointer struct_declarator_list
 %type<Node> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
-%type<Node> A1 A2 B1 B2 k1 S1 S2 E1 E2 external_struct_declaration N emit_or emit_and case
+%type<Node> A1 A2 typevar_NULL B2 k1 S1 S2 E1 E2 external_struct_declaration N new_or new_and case
 %start program
 
 %type<instr> M 
@@ -68,6 +68,7 @@ primary_expression
 	: IDENTIFIER																			{	$$ = new_leaf_node($1);
 																								tEntry* entry = find_entry(scope_st,$1);
 																								if(!entry){
+																												$$->type = "incorrect";
 																												yyerror(string($1) + " is not declared");
 																										}
 																								else{	
@@ -77,11 +78,12 @@ primary_expression
 																									}
 																									else{
 																										//entry
-																										$$->type = entry->type;
-																										$$->key = entry->key;
 																										$$->size = entry->size;
 																										$$->init = entry->init;
-																										
+																										$$->type = entry->type;
+																										$$->key = $$->s;
+																										$$->isidentifier = 1;
+																										// opd place
 																										$$->place = create_opd($$->key,entry);	
 																									}
 																								}
@@ -126,11 +128,12 @@ primary_expression
 																								string b = $$->s;
 																								b.pop_back();
 																								string c = "\\\"";
+																								// update s
 																								$$->s = a + b + c;
 
+																								$$->init=1;	
 																								$$->type = "string";
 																								$$->key = $$->s;
-																								$$->init=1;
 																								
 																								$$->place = opd($1);
 																							}
@@ -171,7 +174,7 @@ postfix_expression
 																									$$->key = $1->key;
 																									$$->val_type = $1->val_type;
 																									if($1->init == 1 && $3->init == 1)
-																									$$->init = 1;
+																										$$->init = 1;
 	
 																									// var_0 = n * size
 																									string var_0 = create_tmp_var( $3->type , offset, curr_scope);
@@ -203,12 +206,14 @@ postfix_expression
 																									}
 
 																									string funcname = $$->type+" "+$1->key;
+																									// FIND IS FUNCTION IS DECLARED
 																									if(FUNC_PARAM.find(funcname) == FUNC_PARAM.end()){
 																										yyerror("The Function " + $1->key + " is not yet declared");
 																									}
 																									else{
 																										emit(call_opd, "", $1->place, empty_opd,-1);
 																									}
+																									// no function arguments
 																									func_args="";
 																								}
 																								else{
@@ -221,7 +226,8 @@ postfix_expression
 																							 	tEntry* entry = find_entry(scope_st,$1->key);
 
 																								if(entry){
-																									$$->init = $1->init;
+																									if($1->init == 1 && $3->init == 1)
+																										$$->init = $1->init;
 																									$$->type = entry->type;
 																									$$->key = $1->key;
 																									$$->val_type = $1->val_type;
@@ -235,19 +241,34 @@ postfix_expression
 																									}
 																									else {
 																										string param = FUNC_PARAM[funcname];
+																										// cout << "param: " <<param << " " << endl;
 																										const char delim = ',';
 																										vector<string> param1;
-																										tokenize_func_args(param, delim, param1);
+																										size_t start;
+																										size_t end = 0;
+																										while ((start = param.find_first_not_of(delim, end)) != string::npos){
+																										    end = param.find(delim, start);
+																										    param1.push_back(param.substr(start, end - start));
+																										}
 																										
 																										vector<string> arg1;
-																										tokenize_func_args(func_args, delim, arg1);																										
+																										// cout << "args: " << func_args << " " << endl;
+																										end = 0;
+																										while ((start = func_args.find_first_not_of(delim, end)) != string::npos){
+																										    end = func_args.find(delim, start);
+																										    arg1.push_back(func_args.substr(start, end - start));
+																										}	
+
+																										// for(int i = 0; i<arg1.size(); i++){
+																										// 	cout << "k: "<< arg1[i] << " "<< param1[i] << endl;
+																										// }																								
 
 																										if(arg1.size() == param1.size()){
                                                             								                for(int i = 0 ; i < param1.size() ;i++){
 																											    if( param1[i].substr( 0, arg1[i].size()) != arg1[i]){
 																											       yyerror("Invalid arguments");
 																												}										
-																												opd parameters = create_opd( "__argument__"+to_string(i), param_place[i].entry);
+																												opd parameters = create_opd( "__argument"+to_string(i) + "__", param_place[i].entry);
 																												emit( empty_opd , "" , param_place[i] , parameters , -1);
 																											}
 																											// call function
@@ -276,7 +297,7 @@ postfix_expression
 																									if(struct_entry){
 																										if(struct_entry->key != $3)
 																											yyerror("Type Mismatch");
-																										$$->type=struct_entry->type;
+																										$$->type = struct_entry->type;
 																									}
 																									else{
 																										     yyerror("Invalid attribute " + string($3) + " for " + $1->key);
@@ -298,15 +319,26 @@ postfix_expression
 																								}
 																							}
 
-	// | postfix_expression POINTER_OPERATOR IDENTIFIER										{
-	// 																							$$ = new_2_node("->", $1, new_leaf_node($3));
-	// 																							$$->key=$1->key;
-	// 																						}
+	| postfix_expression POINTER_OPERATOR IDENTIFIER										{
+																								$$ = new_2_node("->", $1, new_leaf_node($3));
+																								$$->key=$1->key;
+																								// ptr not supported
+																								//if( isptr($1->type)){
+																								// 	tEntry* entry = find_struct_entry(struct_name, $1->key);
+																								//}
+																								//else{
+																								//	yyerror("This operation is not supported.");
+																								//}
+																							}
 
 	| postfix_expression INCREMENT															{
+																								// cout << "increment" << $1->init << endl;
     												    										$$ = new_1_node("++", $1);
 																								$$->key  = $1->key;
 																								$$->init = $1->init;
+																								if($$->init != 1){
+																									yyerror("First initialise the variable " + $1->key);
+																								}
 																								$$->type = $1->type;
 																								$$->val_type = $1->val_type;
 																								$$->num = $1->num + 1;
@@ -317,7 +349,7 @@ postfix_expression
 																									$$->type = "incorrect";
 																								    yyerror($1->key + " doesn't have suitable type for increment operation");
 																								}
-
+																								// integer
 																								else{
 																								   	$$->type = typecheck;
 
@@ -345,6 +377,7 @@ postfix_expression
 																									$$->type = "incorrect";
 																								    yyerror($1->key + " doesn't have suitable type for decrement operation");
 																								}
+																							
 																								else{
 																								   	$$->type = typecheck;
 
@@ -363,13 +396,13 @@ postfix_expression
 argument_expression_list
 	: assignment_expression 																{	
 																								$$=$1;
-																							 	
-																								func_args = $1->type;
+																							 	// func_args
 																								$$->init = $1->init;
 																								$$->key = $1->key;
-																								$$->val_type = $1->val_type;
 																								$$->num = $1->num;
+																								$$->val_type = $1->val_type;
 																								$$->init = $1->init;
+																								func_args = $1->type;
 
 																								// lists
 																								$$->nextlist = $1->nextlist;
@@ -390,8 +423,9 @@ argument_expression_list
 																							 	if($1->init == 1 && $3->init == 1)
 																								 	$$->init = 1;
 																								$$->key = $1->key;
+																								$$->num = $1->num + 1;
 																								$$->val_type = $1->val_type;
-																								$$->num = $1->num+1;
+																								
 																								param_place.push_back($3->place);
 
 																							}
@@ -405,17 +439,15 @@ unary_expression
 
 																								if(entry){
 																									$$->num = $2->num+1;
-																									int callflag = 0;
 
 																									if($2->init == 1){
 																										$$->init = 1;
-																										callflag = 1;
 																									}
 																								    else{
 																										yyerror("Variable " + $2->key + " is not initialised.");
 																									}
 																									
-																									if(callflag){
+																									if($2->init){
 																										$$->type = entry->type;
 																										$$->key = $2->key;
 																										$$->val_type = $2->val_type;
@@ -448,16 +480,14 @@ unary_expression
 
 																								if(entry){
 																									$$->num = $2->num-1;
-																									int callflag = 0;
 
 																									if($2->init == 1){
 																										$$->init = 1;
-																										callflag = 1;
 																									}
 																									else
 																										yyerror("Variable " + $2->key + " is not initialised.");
 
-																									if(callflag){
+																									if($2->init){
 																										$$->type = $2->type;
 																										$$->key = $2->key;
 																										$$->val_type = $2->val_type;
@@ -544,9 +574,10 @@ unary_expression
 																								$$ = new_1_node("SIZEOF", $2);
 																							 	$$->type = "int";
 																							 	$$->init = 1;
-																								$$->val_type = $2->val_type;
 																								$$->num = $2->num;
 																							 	$$->key = $2->key;
+																								$$->val_type = $2->val_type;
+																								
 																							}
 
 	| SIZEOF '(' type_name ')'																{
@@ -601,7 +632,7 @@ unary_operator
 																								$$->flag = 0;
 																							}
  	| '(' type_name ')' cast_expression	    	            								{
-		 																						$$ =  new_2_node("CAST_EXPR", $2, $4);
+		 																						$$ =  new_2_node("CAST_EXPRESSION", $2, $4);
 	 																							$$->type = $2->type;
 
 																								if($4->init == 1){
@@ -1110,7 +1141,7 @@ inclusive_or_expression
 
 logical_and_expression
 	: inclusive_or_expression									  							{ $$ = $1;}
-	| emit_and AND_LOGICAL M inclusive_or_expression										{
+	| new_and AND_LOGICAL M inclusive_or_expression										{
 																								$$ = new_2_node("&&", $1, $4);
 																								$$->type = "int";
 																								$$->key = $1->key;
@@ -1151,7 +1182,7 @@ logical_and_expression
 																  							}
 	;
 
-emit_and
+new_and
 	: logical_and_expression  {
 										$$=$1;
 	
@@ -1170,13 +1201,12 @@ emit_and
 M
 	: %empty 				{	
 								$$ = instruction_num;
-							
 							}
 	;
 
 logical_or_expression
 	: logical_and_expression									  							{$$ = $1;}
-	| emit_or OR_LOGICAL M logical_and_expression								{
+	| new_or OR_LOGICAL M logical_and_expression								{
 																							$$ = new_2_node("||", $1, $4);
 																							$$->type = "int";
 																							$$->key = $1->key;
@@ -1223,7 +1253,7 @@ logical_or_expression
 																						}
 	;					
 					
-emit_or 					
+new_or 					
 	: logical_or_expression		{					
 									$$=$1;					
 					
@@ -1240,7 +1270,7 @@ emit_or
 
 conditional_expression
 	: logical_or_expression										           					{$$ = $1;}
-	| emit_or '?' M expression N ':' M conditional_expression      					{
+	| new_or '?' M expression N ':' M conditional_expression      					{
 																								$$ = new_3_node("?:", $1, $4, $8);
 																								$$->key = $8->key;
 																								if($1->init == 1 && $8->init == 1 && $4->init == 1) 
@@ -1350,8 +1380,13 @@ assignment_expression
 																											$$->type = $1->type;
 																											yyerror("Assignment with incompatible pointer type");
 																										}	
-																										else{
-																											yyerror("Invalid syntax.");
+																										if($1->isidentifier == 1){
+																											if($3->init == 1){
+																												tEntry* entry = find_entry(scope_st, $1->s);
+																												if(entry){
+																													entry->init = 1;
+																												}
+																											}
 																										}	
 																									}
 																  							}
@@ -1405,15 +1440,15 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers B1 ';' 														{ $$ = $1; }
-	| declaration_specifiers init_declarator_list B1 ';'									{ $$ = new_2_node("Declaration", $1, $2); }
+	: declaration_specifiers typevar_NULL ';' 														{ $$ = $1; }
+	| declaration_specifiers init_declarator_list typevar_NULL ';'									{ $$ = new_2_node("Declaration", $1, $2); }
 	;
 
-B1
+typevar_NULL
 	: %empty 	{ type_var = ""; }
-	;
+;
 
-// need to do
+
 declaration_specifiers
 	: storage_class_specifier																{ $$ = $1; }
 	| storage_class_specifier declaration_specifiers										{ $$ = new_2_node("Declaration Specifier", $1, $2);}
@@ -1457,7 +1492,10 @@ init_declarator
 																								}
 																								else{			
 																									if( is_valid_var_type($1->type) ){
+																										// cout << "aaya " << endl;
 																										$$->type = $1->type;
+																										$$->init = $3->init;
+																										$1->init = $3->init;
 
 																										if( !(find_entry(scope_st,$1->key)) ){
 																											insert_entry($1->key ,$1->type ,1 ,$1->size ,offset ,curr_scope);
@@ -1565,7 +1603,7 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list B1 ';' 									{
+	: specifier_qualifier_list struct_declarator_list typevar_NULL ';' 									{
 																									$$ = new_2_node("struct_declaration",$1,$2);
 																									$$->size = $2->size;
 																								}
@@ -1608,10 +1646,13 @@ declarator
 																									$$->type = $1->type + " " + $2->type;
 																									$$->key = $2->key;
 																									$$->size = getSize($$->type);
+
+																									$$->place = opd($2->s);
 																								}	
 
 	| direct_declarator																			{
 																									$$ = $1;
+																									$$->place = opd($1->s);
 																								}
 	;
 
@@ -1621,6 +1662,8 @@ direct_declarator
 																									$$->type = type_var;
 																									$$->key = $1;
 																									$$->size = getSize($$->type);
+
+																									$$->place = opd($1);
 																								}											
 	| '(' declarator ')'																		{
 																									$$ = new_1_node("()", $2);
@@ -1650,7 +1693,13 @@ direct_declarator
 																									
 																									const char delim = ',';
 																									vector<std::string> args;
-																									tokenize_func_args(func_params, delim, args);
+																									size_t start;
+																									size_t end = 0;
+																								
+																									while ((start = func_params.find_first_not_of(delim, end)) != string::npos){
+																									    end = func_params.find(delim, start);
+																									    args.push_back(func_params.substr(start, end - start));
+																									}
 																									
 																									insert_entry($1->key , type_var, 0, $1->size, -1, 0);
 																									$1->place = create_opd($1->key, find_entry(scope_st, $1->key));
@@ -1660,7 +1709,13 @@ direct_declarator
 																									for(int i=0;i<args.size();i++){
 																										const char delim1 = ' ';
 																										vector<std::string> arg;
-																										tokenize_func_args(args[i], delim1, arg);
+																										size_t start;
+																										size_t end = 0;
+
+																										while ((start = args[i].find_first_not_of(delim1, end)) != string::npos){
+																										    end = args[i].find(delim1, start);
+																										    arg.push_back(args[i].substr(start, end - start));
+																										}
 																										string t = "";
 																										
 																										for(int j = 0;j < arg.size() - 1 ; j++){
@@ -1994,11 +2049,6 @@ E2
 								}
 	;
 
-//stmt
-//	: ELSE statement																			{$$ = $2;}
-//	| statement 																				{$$ = $1;}
-//	;
-
 // need to work on these
 new_stmt
     : NEW type_specifier '[' CONSTANT ']'														{$$=new_2_node("NEW", $2, new_leaf_node($4));}
@@ -2150,7 +2200,7 @@ translation_unit
 	: external_declaration                    													{	$$ = $1; 
 																									type_var = "";
 																								}
-	| translation_unit B1 external_declaration   			 									{	$$ = new_2_node("<>", $1, $3);
+	| translation_unit typevar_NULL external_declaration   			 									{	$$ = new_2_node("<>", $1, $3);
 																									type_var = "";
 																								}
 	;
@@ -2163,7 +2213,7 @@ external_declaration
 	;
 
 external_struct_declaration
-	:	STRUCT S1 B1 '{' struct_declaration_list '}' ';'   										{
+	:	STRUCT S1 typevar_NULL '{' struct_declaration_list '}' ';'   										{
 																									$$ = new_2_node("STRUCT", $2, $5);
 																									$$->size = $5->size;
 																								}
@@ -2183,8 +2233,8 @@ int curr_scope = 0;
 int num_scopes = 0;
 
 string type_var;
-string struct_name;
-std::unordered_map <std::string, sym_table_t*> struct_symbol_tables;
+string struct_name;	// for struct name
+unordered_map <string, sym_table_t*> struct_symbol_tables;
 string func_params;
 vector<opd> param_place;
 vector<string> printf_helpers;

@@ -1,3 +1,7 @@
+struct test{
+    int a;
+};
+
 int fib(int n)
 {
     int a;
@@ -15,8 +19,15 @@ int main()
 {
     int a;
     int b;
+    int c;
+    c = 10;
     a = -5;
     b = fib(5);
     printf("fib: %d", b);
+    for(c = 0; c < 10; c++){
+        int z = fib(c);
+    }
+    c++;
+    ++c;
     return 0;
 }

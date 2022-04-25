@@ -45,7 +45,6 @@ void insert_struct_entry(string struct_name, string key, string type, long offse
 tEntry *find_entry(stack<int> st, string key);
 tEntry *find_struct_entry(string struct_name, string key);
 string find_type(stack<int> st, string key);
-void tokenize_func_args(string const &str, const char delim, vector<string> &out);
 int getSize(string s);
 int struct_size(string s);
 void init_basic_func();

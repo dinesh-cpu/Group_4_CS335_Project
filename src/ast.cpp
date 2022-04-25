@@ -53,6 +53,7 @@ node *new_leaf_node(const string &val)
 	
 	new_node->init = 0;
 	new_node->size = -1;
+	new_node->isidentifier = 0;
 	
 	new_node->val_type = -1;
 	new_node->num = 0;
@@ -71,6 +72,7 @@ node *init_leaf_node(node *leaf_node)
 	
 	leaf_node->init = 0;
 	leaf_node->size = -1;
+	leaf_node->isidentifier = 0;
 	
 	leaf_node->val_type = -1;
 	leaf_node->num = 0;

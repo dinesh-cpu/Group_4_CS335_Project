@@ -85,7 +85,7 @@ sym_table_t *insert_sym_table(int scope)
 }
 
 // insert structs in table
-sym_table_t *insert_struct_sym_table(std::string name)
+sym_table_t *insert_struct_sym_table(string name)
 {
     sym_table_t *new_t = new sym_table_t();
     struct_symbol_tables.insert({name, new_t});
@@ -227,16 +227,6 @@ int struct_size(string s)
 void init_basic_func()
 {
     FUNC_PARAM.insert(make_pair("void printf", "char *"));
-}
-
-void tokenize_func_args(string const &str, const char delim, vector<string> &out){
-    size_t start;
-    size_t end = 0;
- 
-    while ((start = str.find_first_not_of(delim, end)) != string::npos){
-        end = str.find(delim, start);
-        out.push_back(str.substr(start, end - start));
-    }
 }
 
 // for the size of the types
