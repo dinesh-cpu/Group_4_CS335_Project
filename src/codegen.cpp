@@ -3,7 +3,7 @@
 using namespace std;
 
 
-#define REG_SPACE 36
+
 ofstream asm_file;
 vector<string> _data;
 
@@ -90,8 +90,7 @@ string getReg(pair<string, tEntry *> temp_var)
 
         int offset1 = temp_var.second->offset;
 
-        if (curr_function != "main")
-            offset1 = offset1 + REG_SPACE;
+       
 
         string reg = t.first;
 
@@ -114,8 +113,7 @@ string getReg(pair<string, tEntry *> temp_var)
         tEntry *currTmp = t.second;
         string reg = t.first;
         int offset = currTmp->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+        
 
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6"); 
@@ -123,8 +121,7 @@ string getReg(pair<string, tEntry *> temp_var)
         insert_asm("sw " + reg + ", 0($s7)");
 
         offset = temp_var.second->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+        
 
         // now we store value in the register
         insert_asm("li $s6, " + to_string(offset));
@@ -149,8 +146,7 @@ void store_reg_info()
         tEntry *currTmp = t.second;
         string reg = t.first;
         int offset = currTmp->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+       
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6"); 
         insert_asm("sw " + reg + ", 0($s7)");
@@ -167,8 +163,7 @@ void store_reg_info()
         tEntry *currTmp = t.second;
         string reg = t.first;
         int offset = currTmp->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+       
 
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6"); 
@@ -201,8 +196,7 @@ string getReg_float(pair<string, tEntry *> temp_var)
 
         int offset1 = temp_var.second->offset;
 
-        if (curr_function != "main")
-            offset1 = offset1 + REG_SPACE;
+       
         string reg = t.first;
 
         // now we store value in the register
@@ -222,16 +216,14 @@ string getReg_float(pair<string, tEntry *> temp_var)
         tEntry *currTmp = t.second;
         string reg = t.first;
         int offset = currTmp->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+        
 
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6"); 
         insert_asm("swc1 " + reg + ", 0($s7)");
 
         offset = temp_var.second->offset;
-        if (curr_function != "main")
-            offset = offset + REG_SPACE;
+        
 
         // now we store value in the register
         insert_asm("li $s6, " + to_string(offset));
@@ -295,7 +287,7 @@ void get_arr_element(pair<string, tEntry *> temp_var, string reg_name)
         // both works for normal array and struct array
         insert_asm("li $t7, " + to_string(temp_var.second->size));
         insert_asm("li $s6, " + to_string(temp_var.second->offset));
-        insert_asm("addi $s6, " + to_string(REG_SPACE));
+       
         insert_asm("sub $s7, $fp, $s6");
         insert_asm("lw $t8, 0($s7)");
         insert_asm("sub $s7, $t8, $t7");
