@@ -1,6 +1,6 @@
 # -c to take the files to linker in multiple files
 all: 
-	bison -d parser.y	
+	bison -v -d parser.y	
 	flex lexer.l	
 	g++ -c ast.cpp -o ast.o	
 	g++ -c type_checking.cpp -o type_checking.o	
