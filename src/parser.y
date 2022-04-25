@@ -1792,8 +1792,6 @@ parameter_declaration
 																									    func_params += $2->type + " " + $2->key;
 																									else
 																									    func_params += "," + $2->type + " " + $2->key;
-
-																									$$ = new_2_node("parameter_declaration", $1, $2);
 																								}
 
 	| declaration_specifiers abstract_declarator 												{	$$=new_2_node("parameter_declaration",$1,$2); }
