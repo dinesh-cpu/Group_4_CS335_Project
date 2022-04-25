@@ -223,12 +223,6 @@ int struct_size(string s)
     return size;
 }
 
-// basic functions
-void init_basic_func()
-{
-    FUNC_PARAM.insert(make_pair("void printf", "char *"));
-}
-
 // for the size of the types
 int getSize(string s)
 {
@@ -308,6 +302,7 @@ int getSize(string s)
     }
 }
 
+// should be in multiple of 4
 void align_offset(int size){
     offset += size;
     if( offset%4 == 0)

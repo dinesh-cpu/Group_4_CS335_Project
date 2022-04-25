@@ -47,6 +47,5 @@ tEntry *find_struct_entry(string struct_name, string key);
 string find_type(stack<int> st, string key);
 int getSize(string s);
 int struct_size(string s);
-void init_basic_func();
 void align_struct_offset(int size);
 void align_offset(int size);

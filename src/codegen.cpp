@@ -2,11 +2,8 @@
 #include<3ac.h>
 using namespace std;
 
-
-
 ofstream asm_file;
 vector<string> _data;
-
 
 map<string, vector<string>> asm_code;
 queue<pair<string, tEntry *>> free_reg;
@@ -90,10 +87,7 @@ string getReg(pair<string, tEntry *> temp_var)
 
         int offset1 = temp_var.second->offset;
 
-       
-
         string reg = t.first;
-
         // now we store value in the register
         insert_asm("li $s6, " + to_string(offset1)); 
         insert_asm("sub $s7, $fp, $s6");             
@@ -121,8 +115,6 @@ string getReg(pair<string, tEntry *> temp_var)
         insert_asm("sw " + reg + ", 0($s7)");
 
         offset = temp_var.second->offset;
-        
-
         // now we store value in the register
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6");            
@@ -190,13 +182,9 @@ string getReg_float(pair<string, tEntry *> temp_var)
     //Check if we have a free_reg
     if (free_reg_float.size())
     {
-
         pair<string, tEntry *> t = free_reg_float.front();
         free_reg_float.pop();
-
         int offset1 = temp_var.second->offset;
-
-       
         string reg = t.first;
 
         // now we store value in the register
@@ -212,12 +200,9 @@ string getReg_float(pair<string, tEntry *> temp_var)
     {
         pair<string, tEntry *> t = used_reg_float.front();
         used_reg_float.pop();
-
         tEntry *currTmp = t.second;
         string reg = t.first;
         int offset = currTmp->offset;
-        
-
         insert_asm("li $s6, " + to_string(offset));
         insert_asm("sub $s7, $fp, $s6"); 
         insert_asm("swc1 " + reg + ", 0($s7)");

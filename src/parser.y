@@ -176,16 +176,16 @@ postfix_expression
 																									if($1->init == 1 && $3->init == 1)
 																										$$->init = 1;
 	
-																									// var_0 = n * size
-																									string var_0 = create_tmp_var( $3->type , offset, curr_scope);
+																									// tmp_0 = n * size
+																									string tmp_0 = create_tmp_var( $3->type , offset, curr_scope);
 																									align_offset( getSize($3->type) );
-																									emit($3->place, "*", opd(to_string(getSize($$->type))), var_0, instruction_num);
+																									emit($3->place, "*", opd(to_string(getSize($$->type))), tmp_0, instruction_num);
 	
-																									// var_1 = arr + var_0
-																									string var_1 = create_tmp_var($$->type + " *", offset, curr_scope);
+																									// tmp_1 = arr + tmp_0
+																									string tmp_1 = create_tmp_var($$->type + " *", offset, curr_scope);
 																									align_offset( getSize($$->type + " *") );
-																									emit($1->place , "+", var_0, var_1, instruction_num );
-																									$$->place = var_1;
+																									emit($1->place , "+", tmp_0, tmp_1, instruction_num );
+																									$$->place = tmp_1;
 																								}
 																							}
 																						}
@@ -268,12 +268,12 @@ postfix_expression
 																											    if( param1[i].substr( 0, arg1[i].size()) != arg1[i]){
 																											       yyerror("Invalid arguments");
 																												}										
-																												opd parameters = create_opd( "__argument"+to_string(i) + "__", param_place[i].entry);
-																												emit( empty_opd , "" , param_place[i] , parameters , -1);
+																												opd parameters = create_opd( "__argument"+to_string(i) + "__", parameter_p[i].entry);
+																												emit( empty_opd , "" , parameter_p[i] , parameters , -1);
 																											}
 																											// call function
 																											emit(call_opd , "" , $1->place , empty_opd , -1);
-																											param_place.clear();
+																											parameter_p.clear();
 																										}
 																										else 
 																											yyerror("Invalid number of arguments");
@@ -304,12 +304,12 @@ postfix_expression
 																											 $$->type = "error_type";
 																									}
 																									
-																									// var_0 = struct name + offset
-																									string var_0 = create_tmp_var($$->type + " *",offset,curr_scope);
+																									// tmp_0 = struct name + offset
+																									string tmp_0 = create_tmp_var($$->type + " *",offset,curr_scope);
 																									align_offset( getSize($$->type + " *") );
-																									emit( $1->place ,"+" , opd(to_string(struct_entry->offset)) , var_0 , instruction_num);
+																									emit( $1->place ,"+" , opd(to_string(struct_entry->offset)) , tmp_0 , instruction_num);
 																									
-																									$$->place = var_0;
+																									$$->place = tmp_0;
 
 																								}	
 
@@ -353,13 +353,13 @@ postfix_expression
 																								else{
 																								   	$$->type = typecheck;
 
-																								   	string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																								   	string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																								   	align_offset( getSize($$->type) );
 
-																								   	$$->place = create_opd(var_0, find_entry( scope_st, var_0));
-																									// var_0 = variable
+																								   	$$->place = create_opd(tmp_0, find_entry( scope_st, tmp_0));
+																									// tmp_0 = variable
 																								   	emit(empty_opd , "" , $1->place , $$->place , instruction_num);
-																									// variable = var_0 + 1
+																									// variable = tmp_0 + 1
 																									emit($$->place, "+" , one_opd , $1->place , instruction_num);
 																								}
 																							}
@@ -381,13 +381,13 @@ postfix_expression
 																								else{
 																								   	$$->type = typecheck;
 
-																								   	string var_0 = create_tmp_var( $$->type, offset , curr_scope);
+																								   	string tmp_0 = create_tmp_var( $$->type, offset , curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd( var_0, find_entry(scope_st , var_0));
-																									// var_0 = variable
+																									$$->place = create_opd( tmp_0, find_entry(scope_st , tmp_0));
+																									// tmp_0 = variable
 																									emit(empty_opd ,"" , $1->place , $$->place, instruction_num);
-																									// variable = var_0 + 1
+																									// variable = tmp_0 + 1
 																									emit($$->place , "-", one_opd, $1->place, instruction_num);
 																								}
 																							}	
@@ -412,7 +412,7 @@ argument_expression_list
 																								$$->falselist = $1->falselist;
 
 																								$$->place = $1->place;
-																								param_place.push_back($1->place);
+																								parameter_p.push_back($1->place);
 
 																							}
 	| argument_expression_list ',' assignment_expression 									{
@@ -426,7 +426,7 @@ argument_expression_list
 																								$$->num = $1->num + 1;
 																								$$->val_type = $1->val_type;
 																								
-																								param_place.push_back($3->place);
+																								parameter_p.push_back($3->place);
 
 																							}
 	;
@@ -461,13 +461,13 @@ unary_expression
 																										else{
 																											$$->type = typecheck;
 
-																											string var_0 = create_tmp_var($$->type , offset ,  curr_scope);
+																											string tmp_0 = create_tmp_var($$->type , offset ,  curr_scope);
 																											align_offset( getSize($$->type) );
 
-																											$$->place = create_opd(var_0 , find_entry(scope_st, var_0));
-																											// var_0 = variable + 1	
+																											$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																											// tmp_0 = variable + 1	
 																											emit($2->place , "+" , one_opd,  $$->place, instruction_num);
-																											// variable = var_0
+																											// variable = tmp_0
 																											emit(empty_opd , "", $$->place, $2->place, instruction_num);
 											 															}
 																									}
@@ -501,13 +501,13 @@ unary_expression
 																										else{
 																											$$->type = typecheck;
 
-																											string var_0 = create_tmp_var( $$->type , offset, curr_scope);
+																											string tmp_0 = create_tmp_var( $$->type , offset, curr_scope);
 																											align_offset( getSize($$->type) );
 
-																											$$->place = create_opd(var_0 ,find_entry(scope_st, var_0));	
-																											// var_0 = variable + 1
+																											$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));	
+																											// tmp_0 = variable + 1
 																											emit($2->place, "-" , one_opd , $$->place , instruction_num);
-																											// variable = var_0
+																											// variable = tmp_0
 																											emit(empty_opd, "" , $$->place , $2->place , instruction_num);  
 																										}	
 																									}
@@ -561,10 +561,10 @@ unary_expression
 																									}
 
 																									else {
-																										string var_0 = create_tmp_var($$->type , offset,  curr_scope);
+																										string tmp_0 = create_tmp_var($$->type , offset,  curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd( var_0 , find_entry(scope_st, var_0));
+																										$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));
 																										emit(empty_opd , $1->s , $2->place , $$->place , instruction_num);
 																									}	
 																								}
@@ -620,12 +620,12 @@ unary_operator
 		 																						$$ = $1;
 
 																								if($1->flag == 1){		
-																									string var_0 = create_tmp_var( $1->type , offset , curr_scope);
+																									string tmp_0 = create_tmp_var( $1->type , offset , curr_scope);
 																									align_offset( getSize( $1->type) );
 
-																									opd var_1 = create_opd(var_0 , find_entry(scope_st, var_0));
-																									emit(empty_opd, "*", $1->place, var_1, instruction_num);
-																									$$->place = var_1;
+																									opd tmp_1 = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																									emit(empty_opd, "*", $1->place, tmp_1, instruction_num);
+																									$$->place = tmp_1;
 																								}
 
 																								// reset flag
@@ -667,11 +667,11 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 
-																									string var_0 = create_tmp_var ( $$->type , offset , curr_scope);
+																									string tmp_0 = create_tmp_var ( $$->type , offset , curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 , find_entry(scope_st , var_0));	
-																									// var_0 = exp * exp
+																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));	
+																									// tmp_0 = exp * exp
 																									emit( $1->place , "*" , $3->place , $$->place , instruction_num);
 																								} 	
 																							}
@@ -696,11 +696,11 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 																									
-																									string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 , find_entry(scope_st , var_0));
-																									// var_0 = exp / exp
+																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));
+																									// tmp_0 = exp / exp
 																									emit($1->place, "/", $3->place, $$->place, instruction_num);	
 																								} 	
 																							}														
@@ -727,11 +727,11 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 
-																									string var_0 = create_tmp_var( $$->type ,offset ,curr_scope);
+																									string tmp_0 = create_tmp_var( $$->type ,offset ,curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 , find_entry(scope_st , var_0));
-																									// var_0 = exp % exp
+																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));
+																									// tmp_0 = exp % exp
 																									emit($1->place, "%" ,$3->place , $$->place ,instruction_num);
 																								}
 																							}
@@ -753,11 +753,11 @@ additive_expression
 																								}
 																								else{
 																									$$->type = typecheck;
-																									string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 , find_entry(scope_st, var_0));
-																									// var_0 = exp + exp
+																									$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																									// tmp_0 = exp + exp
 																									emit($1->place, "+", $3->place, $$->place, instruction_num);
 																								} 
 																								
@@ -786,7 +786,7 @@ additive_expression
 																									align_offset(getSize($$->type));
 
 																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
-																									// var_0 = exp - exp
+																									// tmp_0 = exp - exp
 																									emit($1->place , "-" , $3->place , $$->place , instruction_num);
 																								}
 																							}							
@@ -808,11 +808,11 @@ shift_expression
 																 								}
 																								else{
 																								  	$$->type = $1->type;
-																									string var_0 = create_tmp_var($$->type , offset , curr_scope);
+																									string tmp_0 = create_tmp_var($$->type , offset , curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 , find_entry(scope_st, var_0));
-																									// var_0 = exp << exp
+																									$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																									// tmp_0 = exp << exp
 																									emit($1->place,"<<", $3->place , $$->place , instruction_num);
 																 								}
 																								
@@ -831,11 +831,11 @@ shift_expression
 																  								}
 																								else{
 																									$$->type = $1->type;
-																									string var_0 = create_tmp_var($$->type ,offset, curr_scope);
+																									string tmp_0 = create_tmp_var($$->type ,offset, curr_scope);
 																		                 			align_offset( getSize($$->type) );
 
-																		                 			$$->place = create_opd(var_0 , find_entry(scope_st ,var_0));																												
-																		                 			// var_0 = exp >> exp
+																		                 			$$->place = create_opd(tmp_0 , find_entry(scope_st ,tmp_0));																												
+																		                 			// tmp_0 = exp >> exp
 																		                 			emit($1->place,">>" , $3->place , $$->place , instruction_num);
 																  								}
 																							}
@@ -859,11 +859,11 @@ relational_expression
 																									if( typecheck == "int"){
 																										$$->type = "int";
 
-																										string var_0 = create_tmp_var( $$->type,offset ,curr_scope);
+																										string tmp_0 = create_tmp_var( $$->type,offset ,curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0 , find_entry(scope_st , var_0));																												
-																										// var_0 = exp < exp
+																										$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));																												
+																										// tmp_0 = exp < exp
 																										emit($1->place,"<",$3->place,$$->place,instruction_num);	
 																									}
 																									else if(typecheck == "Bool"){
@@ -890,11 +890,11 @@ relational_expression
 																									if(typecheck == "int"){
 																										$$->type = "int";
 
-																										string var_0 = create_tmp_var($$->type ,offset ,curr_scope);
+																										string tmp_0 = create_tmp_var($$->type ,offset ,curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0 ,find_entry(scope_st ,var_0));
-																										// var_0 = exp > exp
+																										$$->place = create_opd(tmp_0 ,find_entry(scope_st ,tmp_0));
+																										// tmp_0 = exp > exp
 																										emit($1->place, ">", $3->place, $$->place, instruction_num);
 																									}
 																									else if(typecheck == "Bool"){
@@ -922,11 +922,11 @@ relational_expression
 																									if(typecheck == "int"){
 																										$$->type = "int";
 
-																										string var_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0 , find_entry( scope_st, var_0));
-																										// var_0 = exp <= exp
+																										$$->place = create_opd(tmp_0 , find_entry( scope_st, tmp_0));
+																										// tmp_0 = exp <= exp
 																										emit($1->place, "<=", $3->place, $$->place, instruction_num);
 																									}
 																									else if(typecheck == "Bool"){
@@ -954,11 +954,11 @@ relational_expression
 																									if( typecheck == "int"){
 																										$$->type = "int";
 
-																										string var_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0 ,find_entry(scope_st, var_0));																												
-																										// var_0 = exp >= exp
+																										$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));																												
+																										// tmp_0 = exp >= exp
 																										emit($1->place , ">=" ,$3->place , $$->place , instruction_num);
 
 																									}
@@ -992,11 +992,11 @@ equality_expression
 																									if(typecheck == "True"){
 																										$$->type = "int";
 
-																										string var_0 = create_tmp_var($$->type ,offset, curr_scope);
+																										string tmp_0 = create_tmp_var($$->type ,offset, curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0 , find_entry(scope_st, var_0) );
-																										// var_0 = exp == exp
+																										$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0) );
+																										// tmp_0 = exp == exp
 																										emit($1->place, "==", $3->place, $$->place, instruction_num);
 
 																									}
@@ -1023,11 +1023,11 @@ equality_expression
 																									if( typecheck == "True"){
 																										$$->type="int";
 
-																										string var_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(var_0,find_entry( scope_st, var_0));																												
-																										// var_0 = exp == exp
+																										$$->place = create_opd(tmp_0,find_entry( scope_st, tmp_0));																												
+																										// tmp_0 = exp == exp
 																										emit( $1->place, "!=", $3->place, $$->place, instruction_num);	
 																									}
 																									else if( typecheck == "true"){
@@ -1057,11 +1057,11 @@ and_expression
 																								else if(typecheck=="true"){
 																									$$->type = "int";
 
-																									string var_0 = create_tmp_var($$->type, offset, curr_scope);
+																									string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 ,find_entry(scope_st, var_0));
-																									// var_0 = exp & exp	
+																									$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));
+																									// tmp_0 = exp & exp	
 																									emit($1->place, "&", $3->place, $$->place, instruction_num);
 																								}
 
@@ -1087,10 +1087,10 @@ exclusive_or_expression
 																								else if( typecheck == "true"){
 																									$$->type = "int";
 
-																									string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																									align_offset( getSize($$->type) );
-																									$$->place = create_opd( var_0 ,find_entry(scope_st, var_0));																												
-																									// var_0 = exp ^ exp
+																									$$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
+																									// tmp_0 = exp ^ exp
 																									emit($1->place,"^",$3->place,$$->place,instruction_num);
 																								}	
 																								else {
@@ -1115,22 +1115,22 @@ inclusive_or_expression
 																								else if( typecheck == "true"){
 																		  							$$->type = "int";
 							
-																		                            string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																		                            string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																		                            align_offset( getSize($$->type) );
 
-																		                            $$->place = create_opd( var_0 ,find_entry(scope_st, var_0));																												
-																									// var_0 = exp | exp 	
+																		                            $$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
+																									// tmp_0 = exp | exp 	
 																		                            emit($1->place,"|",$3->place,$$->place,instruction_num);
 																
 																	                            }
 																								else if(typecheck == "True"){
 																									$$->type = "long long";
 
-																									string var_0 = create_tmp_var($$->type, offset, curr_scope);
+																									string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(var_0 ,find_entry(scope_st, var_0));
-																									// var_0 = exp | exp	
+																									$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));
+																									// tmp_0 = exp | exp	
 																									emit( $1->place, "|", $3->place, $$->place, instruction_num);
 																								}
 																								else{
@@ -1151,7 +1151,7 @@ logical_and_expression
 																								backpatch( $1->truelist, $3);
 																								$4->falselist = makelist( instruction_num);
 
-																								// if var_1 == var_2 goto ___
+																								// if tmp_1 == tmp_2 goto ___
 																								emit(IF_opd,"==",$4->place,GOTO_opd,-1);
 
 																								$4->truelist = makelist( instruction_num);
@@ -1159,13 +1159,13 @@ logical_and_expression
 																								// goto ____
 																								emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 
-																								string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																								string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																								align_offset( getSize($$->type) );
 
-																								$$->place = create_opd(var_0 ,find_entry(scope_st, var_0));																												
+																								$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));																												
 
 																								backpatch($4->truelist, instruction_num); 
-																								// var_0 = exp
+																								// tmp_0 = exp
 																								emit(empty_opd,"", one_opd , $$->place, instruction_num);
 
 																								$$->truelist = makelist(instruction_num);
@@ -1173,7 +1173,7 @@ logical_and_expression
 																								emit(GOTO_opd,"", empty_opd, empty_opd,-1);
 
 																								backpatch(merging($1->falselist ,$4->falselist), instruction_num);  
-																								// var_0 = 0
+																								// tmp_0 = 0
 																								emit(empty_opd,"",zero_opd , $$->place, instruction_num);
 																								
 																								$$->falselist = makelist( instruction_num);
@@ -1187,7 +1187,7 @@ new_and
 										$$=$1;
 	
 										$$->falselist=merging(makelist(instruction_num),$1->falselist);
-										// if var_1 == var_2 goto ___
+										// if tmp_1 == tmp_2 goto ___
 										emit(IF_opd,"==",$1->place,GOTO_opd,-1);
 														
 										$$->truelist=merging(makelist(instruction_num),$1->truelist);
@@ -1220,7 +1220,7 @@ logical_or_expression
 																							else
 																								backpatch($4->falselist, instruction_num);
 																							
-																							// if var_1 == var_2 goto ___
+																							// if tmp_1 == tmp_2 goto ___
 																							emit(IF_opd,"==",$4->place,GOTO_opd,-1);
 					
 																							if( $4->truelist.size() == 0)
@@ -1231,12 +1231,12 @@ logical_or_expression
 																							// goto ___
 																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 																							
-																							string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																							string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																							align_offset( getSize($$->type) );
-																							$$->place = create_opd( var_0 ,find_entry(scope_st, var_0));																												
+																							$$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
 																							
 																							backpatch($4->falselist, instruction_num);
-																							// var_0 = 0
+																							// tmp_0 = 0
 																							emit( empty_opd, "", zero_opd , $$->place, instruction_num);
 
 																							$$->falselist = makelist(instruction_num);
@@ -1244,7 +1244,7 @@ logical_or_expression
 																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
 																							
 																							backpatch( merging($1->truelist, $4->truelist) , instruction_num);  
-																							// var_0 = 1
+																							// tmp_0 = 1
 																							emit(empty_opd,"",one_opd , $$->place, instruction_num);
 																							
 																							$$->truelist = makelist( instruction_num);
@@ -1258,7 +1258,7 @@ new_or
 									$$=$1;					
 					
 									$$->falselist= merging( makelist(instruction_num) , $1->falselist);
-									// if var_0 == 0 goto ___
+									// if tmp_0 == 0 goto ___
 									emit(IF_opd, "==", $1->place, GOTO_opd, -1);
 									
 									$$->truelist = merging( makelist(instruction_num), $1->truelist);
@@ -1287,11 +1287,11 @@ conditional_expression
 																									backpatch( $1->truelist, $3);
 																						         	backpatch( $1->falselist, $7);
 																						         	
-																						         	string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																						         	string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																						         	align_offset( getSize($$->type) );
-																						         	$$->place = create_opd( var_0 , find_entry(scope_st, var_0));	
+																						         	$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));	
 																						         	
-																									// var_0 = var_1
+																									// tmp_0 = tmp_1
 																						         	emit(empty_opd,"",$8->place , $$->place, instruction_num);
 																									// goto ___
 																						         	emit(GOTO_opd,"",empty_opd,empty_opd,instruction_num+2);
@@ -1300,7 +1300,7 @@ conditional_expression
 																						         	backpatch( $4->truelist , $5->instruction_number);					
 																						         	backpatch( $4->falselist , $5->instruction_number);					
 																						         	backpatch( $5->nextlist, instruction_num);
-																									// var_0 = var_1
+																									// tmp_0 = tmp_1
 																						         	emit(empty_opd,"",$4->place , $$->place, instruction_num);
 																						        }
 																							}   
@@ -1339,31 +1339,31 @@ assignment_expression
 																												backpatch( $3->truelist, instruction_num);
 																												
 																												if($1->flag == 1){
-																													// var_0 = **var_1
+																													// tmp_0 = **tmp_1
 																													emit(star_opd,"",$3->place,$1->place,instruction_num);
 																												}
 																												else if($3->flag == 1){
-																													// var_0 = *var_1
+																													// tmp_0 = *tmp_1
 																													emit(empty_opd,"*",$3->place,$1->place,instruction_num);
 																												}
 																												else{
-																													// var_0 = var_1
+																													// tmp_0 = tmp_1
 																													emit(empty_opd,"",$3->place,$1->place,instruction_num);
 																												} 
 																											}
 																											else{
-																						  						string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+																						  						string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																						  						align_offset( getSize($$->type) );
 
-																						  						$$->place = create_opd( var_0, find_entry(scope_st, var_0));
+																						  						$$->place = create_opd( tmp_0, find_entry(scope_st, tmp_0));
 
 																						  						backpatch( $3->falselist, instruction_num);
 																						  						backpatch( $3->truelist, instruction_num);
 
-																						  						string var_1 = create_tmp_var( $$->type,offset,curr_scope);
+																						  						string tmp_1 = create_tmp_var( $$->type,offset,curr_scope);
 																						  						align_offset( getSize($$->type) );
 
-																						  						opd tmp_opd = create_opd(var_1 ,find_entry(scope_st, var_1));
+																						  						opd tmp_opd = create_opd(tmp_1 ,find_entry(scope_st, tmp_1));
 
 																						  						string str="";
 																						  						str = str + $2->s[0] ;
@@ -1371,7 +1371,7 @@ assignment_expression
 																												  	str = str+$2->s[1];
 
 																						  						emit( $1->place , str , $3->place, $$->place, instruction_num);
-																												// var_0 = var_1
+																												// tmp_0 = tmp_1
 																						  						emit(empty_opd, "", $$->place, $1->place ,instruction_num);
 																				                          	}
 
@@ -1464,7 +1464,7 @@ init_declarator_list
 init_declarator
 	: declarator                   															{
 																									$$ = $1;
-																									if( is_valid_var_type($1->type) ){
+																									if( check_type($1->type) ){
 																										if( (find_entry(scope_st, $1->key)) ){
 																											yyerror($1->key + " is redeclared.");
 																										}
@@ -1478,7 +1478,7 @@ init_declarator
 																										yyerror("Invalid type specification.");
 																									}
 																									$$->place = create_opd($1->key,find_entry(scope_st,$1->key));																												
-																									// var_0 = 
+																									// tmp_0 = 
 																									emit(empty_opd,"",empty_opd,$$->place,instruction_num);
 
 																							}
@@ -1491,7 +1491,7 @@ init_declarator
 																									yyerror("Cannot assign type " + $3->type + " to " + $1->type);
 																								}
 																								else{			
-																									if( is_valid_var_type($1->type) ){
+																									if( check_type($1->type) ){
 																										// cout << "aaya " << endl;
 																										$$->type = $1->type;
 																										$$->init = $3->init;
@@ -1502,7 +1502,7 @@ init_declarator
 																											align_offset($1->size);
 
 																											$$->place = create_opd($1->key ,find_entry(scope_st , $1->key));																												
-																											// var_0 = var_1
+																											// tmp_0 = tmp_1
 																											emit(empty_opd,"",$3->place,$$->place,instruction_num);
 																										}
 																										else{
@@ -1872,21 +1872,21 @@ case
 	:CASE constant_expression 	{
 									$$=$2;
 
-									string var_0 = create_tmp_var( $$->type, offset, curr_scope);
+									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 									align_offset(getSize($$->type));
 
-									opd case_opd = create_opd( var_0 , find_entry(scope_st, var_0) );
-									// case var_0																											
+									opd case_opd = create_opd( tmp_0 , find_entry(scope_st, tmp_0) );
+									// case tmp_0																											
 									emit( empty_opd,"", $2->place, case_opd, instruction_num);
 									
-									string var_1 = create_tmp_var( $$->type , offset,curr_scope);
+									string tmp_1 = create_tmp_var( $$->type , offset,curr_scope);
 									align_offset( getSize($$->type) );
-									$$->place = create_opd(var_1 , find_entry(scope_st, var_1));
+									$$->place = create_opd(tmp_1 , find_entry(scope_st, tmp_1));
 									
-									// var_0 = case - switch
+									// tmp_0 = case - switch
 									emit( case_opd , "-" , switch_opd, $$->place , instruction_num);
 									$$->nextlist = makelist( instruction_num);
-									// if var_1 != 0 goto __
+									// if tmp_1 != 0 goto __
 									emit( IF_opd, "!=" , $$->place , GOTO_opd ,-1);
 									
 								}
@@ -2023,7 +2023,7 @@ E1
 							
 							$$->truelist = makelist(instruction_num);
 							$$->truelist = merging($$->truelist,$1->truelist);
-							// if var_0 != 0 goto ___
+							// if tmp_0 != 0 goto ___
 							emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
 																
 							$$->falselist = makelist(instruction_num);
@@ -2039,7 +2039,7 @@ E2
 									
 									$$->truelist = makelist(instruction_num);
 									$$->truelist = merging($$->truelist , $1->truelist);
-									// if var_0 != 0 goto ___
+									// if tmp_0 != 0 goto ___
 									emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
 																		
 									$$->falselist = makelist(instruction_num);
@@ -2185,7 +2185,7 @@ jump_statement
 								}
 	| RETURN expression ';'		{
 									$$ = new_1_node("RETURN", $2);
-									// return var_0
+									// return tmp_0
 									emit(return_opd, "", $2->place, empty_opd,-1);
 								}
 	;
@@ -2236,7 +2236,7 @@ string type_var;
 string struct_name;	// for struct name
 unordered_map <string, sym_table_t*> struct_symbol_tables;
 string func_params;
-vector<opd> param_place;
+vector<opd> parameter_p;
 vector<string> printf_helpers;
 vector<string> scanf_helpers;
 string func_args;
@@ -2281,7 +2281,6 @@ int main(int argc, char *argv[])
 	scope_st.push(0);
 	init_symtable();
 	initialise();
-    init_basic_func();
 
 
 	// for writing in dotfile

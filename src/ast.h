@@ -24,7 +24,7 @@ typedef struct node
 	int instruction_number;
 	vi nextlist, truelist, falselist, continuelist, breaklist, caselist;
 	opd place;  // place for every node
-	int flag;     // to know struct, array
+	int flag;  
 	int pointer;  
 } node;
 
@@ -34,7 +34,7 @@ void backpatch(vi list, int line);
 vi merging(vi l1, vi l2);
 vi makelist(int line_num);
 ul assign_ID();
-extern vector<opd> param_place;
+extern vector<opd> parameter_p;
 
 node *init_leaf_node(node *leaf_node);
 node *new_leaf_node(const string &val);

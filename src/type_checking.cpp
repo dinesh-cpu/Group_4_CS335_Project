@@ -468,36 +468,62 @@ bool is_keyword(string key)
 }
 
 // new function
-bool is_valid_var_type (string type){
-    if(type == "char" || type == "char *")return true;
-    if(type == "int" || type == "int *")return true;
-    if(type == "long int" || type == "long int *")return true;
-    if(type == "long long" || type == "long long *")return true;
-    if(type == "long" || type == "long *")return true;
-    if(type == "long long int" || type == "long long int *")return true;
+bool check_type (string type){
+    if(type == "char" )
+        return true;
+    if(type == "int" )
+        return true;
+    if(type == "long int" )
+        return true;
+    if(type == "long long" )
+        return true;
+    if(type == "long")
+        return true;
+    if(type == "long long int")
+        return true;
 
-    if(type == "unsigned int" || type == "unsigned int *")return true;
-    if(type == "unsigned long int" || type == "unsigned long int *")return true;
-    if(type == "unsigned long long" || type == "unsigned long long *")return true;
-    if(type == "unsigned long" || type == "unsigned long *")return true;
-    if(type == "unsigned long long int" || type == "unsigned long long int *")return true;
+    if(type == "unsigned int" )
+        return true;
+    if(type == "unsigned long int")
+        return true;
+    if(type == "unsigned long long")
+        return true;
+    if(type == "unsigned long")
+        return true;
+    if(type == "unsigned long long int")
+        return true;
 
-    if(type == "signed int" || type == "signed int *")return true;
-    if(type == "signed long int" || type == "signed long int *")return true;
-    if(type == "signed long long" || type == "signed long long *")return true;
-    if(type == "signed long" || type == "signed long *")return true;
-    if(type == "signed long long int" || type == "signed long long int *")return true;
+    if(type == "signed int")
+        return true;
+    if(type == "signed long int")
+        return true;
+    if(type == "signed long long" )
+        return true;
+    if(type == "signed long")
+        return true;
+    if(type == "signed long long int")
+        return true;
     
-    if(type == "short" || type == "short *")return true;
-    if(type == "short int" || type == "short int *")return true;
-    if(type == "signed short int" || type == "signed short int *")return true;
-    if(type == "unsigned short int" || type == "unsigned short int *")return true;
+    if(type == "short")
+        return true;
+    if(type == "short int" )
+        return true;
+    if(type == "signed short int")
+        return true;
+    if(type == "unsigned short int" )
+        return true;
 
-    if(type == "float" || type == "float *") return true;
-    if(type == "double" || type == "double *") return true;
-    if(type == "long double" || type == "long double *") return true;
-    if(type == "string") return true;
-    if(type.substr(0,6) == "struct") return (struct_size(type)!=0) || (struct_size(type.substr(0, type.size()-2))!=0);
+    if(type == "float") 
+        return true;
+    if(type == "double") 
+        return true;
+    if(type == "long double") 
+        return true;
+    if(type == "string") 
+        return true;
+    if(type.substr(0,6) == "struct") 
+        return (struct_size(type)!=0) || (struct_size(type.substr(0, type.size()-2))!=0);
     
     return false;
+
 }

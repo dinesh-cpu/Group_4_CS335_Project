@@ -44,7 +44,7 @@ void initialise(){
 
 string create_tmp_var(string type,int offset,int scope){
     string temp = to_string(tmp_variable) ; 
-    string temp_label = "__var__"+temp;
+    string temp_label = "__tmp__"+temp;
     string label=temp_label;
     ++tmp_variable;
     insert_entry(label,type,1,getSize(type),offset,scope);
