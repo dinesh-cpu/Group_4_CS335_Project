@@ -77,7 +77,7 @@ primary_expression
 																										yyerror(string($1) + " is not declared in this scope.");
 																									}
 																									else{
-																										//entry with defined type
+																										//entry
 																										$$->size = entry->size;
 																										$$->init = entry->init;
 																										$$->type = entry->type;
@@ -99,6 +99,7 @@ primary_expression
 																									$$->val_type = 1;
 																									$$->num = num;
 																									$$->type = "int";
+
 																									$$->place = opd($1);
 																								}
 																								else {
@@ -106,6 +107,7 @@ primary_expression
 																									$$->val_type = 3;
 																									$$->num = num;
 																									$$->type = "float";
+
 																									$$->place = opd($1);
 																								}
 																							}
@@ -174,10 +176,12 @@ postfix_expression
 																									if($1->init == 1 && $3->init == 1)
 																										$$->init = 1;
 	
+																									// var_0 = n * size
 																									string var_0 = create_tmp_var( $3->type , offset, curr_scope);
 																									align_offset( getSize($3->type) );
 																									emit($3->place, "*", opd(to_string(getSize($$->type))), var_0, instruction_num);
 	
+																									// var_1 = arr + var_0
 																									string var_1 = create_tmp_var($$->type + " *", offset, curr_scope);
 																									align_offset( getSize($$->type + " *") );
 																									emit($1->place , "+", var_0, var_1, instruction_num );
@@ -202,6 +206,7 @@ postfix_expression
 																									}
 
 																									string funcname = $$->type+" "+$1->key;
+																									// FIND IS FUNCTION IS DECLARED
 																									if(FUNC_PARAM.find(funcname) == FUNC_PARAM.end()){
 																										yyerror("The Function " + $1->key + " is not yet declared");
 																									}
@@ -252,7 +257,11 @@ postfix_expression
 																										while ((start = func_args.find_first_not_of(delim, end)) != string::npos){
 																										    end = func_args.find(delim, start);
 																										    arg1.push_back(func_args.substr(start, end - start));
-																										}																							
+																										}	
+
+																										// for(int i = 0; i<arg1.size(); i++){
+																										// 	cout << "k: "<< arg1[i] << " "<< param1[i] << endl;
+																										// }																								
 
 																										if(arg1.size() == param1.size()){
                                                             								                for(int i = 0 ; i < param1.size() ;i++){
@@ -313,6 +322,13 @@ postfix_expression
 	| postfix_expression POINTER_OPERATOR IDENTIFIER										{
 																								$$ = new_2_node("->", $1, new_leaf_node($3));
 																								$$->key=$1->key;
+																								// ptr not supported
+																								//if( isptr($1->type)){
+																								// 	tEntry* entry = find_struct_entry(struct_name, $1->key);
+																								//}
+																								//else{
+																								//	yyerror("This operation is not supported.");
+																								//}
 																							}
 
 	| postfix_expression INCREMENT															{
@@ -1792,6 +1808,8 @@ parameter_declaration
 																									    func_params += $2->type + " " + $2->key;
 																									else
 																									    func_params += "," + $2->type + " " + $2->key;
+
+																									$$ = new_2_node("parameter_declaration", $1, $2);
 																								}
 
 	| declaration_specifiers abstract_declarator 												{	$$=new_2_node("parameter_declaration",$1,$2); }
