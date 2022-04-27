@@ -473,6 +473,8 @@ bool check_type (string type){
         return true;
     if(type == "int" )
         return true;
+    if(type == bool)
+        return true;
     if(type == "long int" )
         return true;
     if(type == "long long" )
