@@ -25,6 +25,8 @@ typedef struct node
 	vi nextlist, truelist, falselist, continuelist, breaklist, caselist;
 	opd place;  // place for every node
 	int flag;  
+
+	// not working
 	int pointer;  
 } node;
 

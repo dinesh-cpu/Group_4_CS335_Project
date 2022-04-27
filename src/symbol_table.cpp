@@ -10,16 +10,8 @@ void init_symtable()
 {
     sym_table_t *curr = (&GST);
     global_scope_table.insert({0, curr});
-    insert_entry("internal_node","key",1,8,-1,0);
-    insert_entry("__IF__","key",1,8,-1,0);
-    insert_entry("__GOTO__","key",1,8,-1,0);
-    insert_entry("__EMPTY__","key",1,8,-1,0);
-    insert_entry("__STAR__","key",1,8,-1,0);
-    insert_entry("__RETURN__","key",1,8,-1,0);
-    insert_entry("__FUNC__","key",1,8,-1,0);
-    insert_entry("__CALL__","key",1,8,-1,0);
-    insert_entry("__PRINTF__","key",1,8,-1,0);
-    insert_entry("__SCANF__","key",1,8,-1,0);
+    insert_entry("TRUE",        "bool",  1,  4,   1,     0);
+    insert_entry("FALSE",       "bool",  1,  4,   1,     0);
 }
 
 //make files

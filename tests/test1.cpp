@@ -10,10 +10,10 @@ int number(){
 int main()
 {
     int arr[5] = {10, 7, 8, 9, 1};
+    int temo1 = arr[4] + arr[2];
     int f = arr[10];
-    int g = arr[-2];
     int c = 4 - (-2);
-    
+    bool temp;
     int error;
     int k = 10;
     int i ;

@@ -61,6 +61,7 @@ int yylex();
 %type<Node> A1 A2 typevar_NULL B2 k1 S1 S2 E1 E2 external_struct_declaration N new_or new_and case
 %start program
 
+
 %type<instr> M 
 %%
 
@@ -167,7 +168,7 @@ postfix_expression
 																								int curr_idx = stoi($3->key);
 																								int arr_length = entry->size/getSize(entry->type);
 
-																								if(curr_idx > arr_length){
+																								if(curr_idx >= arr_length){
 																									yyerror("Array " + $1->key + " index is out of bound.");
 																								}
 																								else{
@@ -211,7 +212,7 @@ postfix_expression
 																										yyerror("The Function " + $1->key + " is not yet declared");
 																									}
 																									else{
-																										emit(call_opd, "", $1->place, empty_opd,-1);
+																										emit(opd("call"), "", $1->place, opd(""),-1);
 																									}
 																									// no function arguments
 																									func_args="";
@@ -269,10 +270,10 @@ postfix_expression
 																											       yyerror("Invalid arguments");
 																												}										
 																												opd parameters = create_opd( "__argument"+to_string(i) + "__", parameter_p[i].entry);
-																												emit( empty_opd , "" , parameter_p[i] , parameters , -1);
+																												emit( opd("") , "" , parameter_p[i] , parameters , -1);
 																											}
 																											// call function
-																											emit(call_opd , "" , $1->place , empty_opd , -1);
+																											emit(opd("call") , "" , $1->place , opd("") , -1);
 																											parameter_p.clear();
 																										}
 																										else 
@@ -358,9 +359,9 @@ postfix_expression
 
 																								   	$$->place = create_opd(tmp_0, find_entry( scope_st, tmp_0));
 																									// tmp_0 = variable
-																								   	emit(empty_opd , "" , $1->place , $$->place , instruction_num);
+																								   	emit(opd("") , "" , $1->place , $$->place , instruction_num);
 																									// variable = tmp_0 + 1
-																									emit($$->place, "+" , one_opd , $1->place , instruction_num);
+																									emit($$->place, "+" , opd("1") , $1->place , instruction_num);
 																								}
 																							}
 	| postfix_expression DECREMENT															{
@@ -389,9 +390,9 @@ postfix_expression
 
 																									$$->place = create_opd( tmp_0, find_entry(scope_st , tmp_0));
 																									// tmp_0 = variable
-																									emit(empty_opd ,"" , $1->place , $$->place, instruction_num);
+																									emit(opd("") ,"" , $1->place , $$->place, instruction_num);
 																									// variable = tmp_0 + 1
-																									emit($$->place , "-", one_opd, $1->place, instruction_num);
+																									emit($$->place , "-", opd("1"), $1->place, instruction_num);
 																								}
 																							}	
 	;
@@ -469,9 +470,9 @@ unary_expression
 
 																											$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
 																											// tmp_0 = variable + 1	
-																											emit($2->place , "+" , one_opd,  $$->place, instruction_num);
+																											emit($2->place , "+" , opd("1"),  $$->place, instruction_num);
 																											// variable = tmp_0
-																											emit(empty_opd , "", $$->place, $2->place, instruction_num);
+																											emit(opd("") , "", $$->place, $2->place, instruction_num);
 											 															}
 																									}
 																									
@@ -509,9 +510,9 @@ unary_expression
 
 																											$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));	
 																											// tmp_0 = variable + 1
-																											emit($2->place, "-" , one_opd , $$->place , instruction_num);
+																											emit($2->place, "-" , opd("1") , $$->place , instruction_num);
 																											// variable = tmp_0
-																											emit(empty_opd, "" , $$->place , $2->place , instruction_num);  
+																											emit(opd(""), "" , $$->place , $2->place , instruction_num);  
 																										}	
 																									}
 																								}
@@ -568,7 +569,7 @@ unary_expression
 																										align_offset( getSize($$->type) );
 
 																										$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));
-																										emit(empty_opd , $1->s , $2->place , $$->place , instruction_num);
+																										emit(opd("") , $1->s , $2->place , $$->place , instruction_num);
 																									}	
 																								}
 																							}
@@ -627,7 +628,7 @@ unary_operator
 																									align_offset( getSize( $1->type) );
 
 																									opd tmp_1 = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
-																									emit(empty_opd, "*", $1->place, tmp_1, instruction_num);
+																									emit(opd(""), "*", $1->place, tmp_1, instruction_num);
 																									$$->place = tmp_1;
 																								}
 
@@ -1155,12 +1156,12 @@ logical_and_expression
 																								$4->falselist = makelist( instruction_num);
 
 																								// if tmp_1 == tmp_2 goto ___
-																								emit(IF_opd,"==",$4->place,GOTO_opd,-1);
+																								emit(opd("if"),"==",$4->place,opd("goto"),-1);
 
 																								$4->truelist = makelist( instruction_num);
 
 																								// goto ____
-																								emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																								emit(opd("goto"),"",opd(""),opd(""),-1);
 
 																								string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																								align_offset( getSize($$->type) );
@@ -1169,19 +1170,19 @@ logical_and_expression
 
 																								backpatch($4->truelist, instruction_num); 
 																								// tmp_0 = exp
-																								emit(empty_opd,"", one_opd , $$->place, instruction_num);
+																								emit(opd(""),"", opd("1") , $$->place, instruction_num);
 
 																								$$->truelist = makelist(instruction_num);
 																								// goto ___
-																								emit(GOTO_opd,"", empty_opd, empty_opd,-1);
+																								emit(opd("goto"),"", opd(""), opd(""),-1);
 
 																								backpatch(merging($1->falselist ,$4->falselist), instruction_num);  
 																								// tmp_0 = 0
-																								emit(empty_opd,"",zero_opd , $$->place, instruction_num);
+																								emit(opd(""),"",opd("0") , $$->place, instruction_num);
 																								
 																								$$->falselist = makelist( instruction_num);
 																								// goto ___
-																								emit( GOTO_opd,"", empty_opd, empty_opd,-1);	
+																								emit( opd("goto"),"", opd(""), opd(""),-1);	
 																  							}
 	;
 
@@ -1191,11 +1192,11 @@ new_and
 	
 										$$->falselist=merging(makelist(instruction_num),$1->falselist);
 										// if tmp_1 == tmp_2 goto ___
-										emit(IF_opd,"==",$1->place,GOTO_opd,-1);
+										emit(opd("if"),"==",$1->place,opd("goto"),-1);
 														
 										$$->truelist=merging(makelist(instruction_num),$1->truelist);
 										// goto ____
-										emit(GOTO_opd,"",empty_opd,empty_opd,-1);		
+										emit(opd("goto"),"",opd(""),opd(""),-1);		
 
 									}	
 	;
@@ -1224,7 +1225,7 @@ logical_or_expression
 																								backpatch($4->falselist, instruction_num);
 																							
 																							// if tmp_1 == tmp_2 goto ___
-																							emit(IF_opd,"==",$4->place,GOTO_opd,-1);
+																							emit(opd("if"),"==",$4->place,opd("goto"),-1);
 					
 																							if( $4->truelist.size() == 0)
 																								$4->truelist=makelist(instruction_num);
@@ -1232,7 +1233,7 @@ logical_or_expression
 																								backpatch($4->truelist, instruction_num);
 																							
 																							// goto ___
-																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																							emit(opd("goto"),"",opd(""),opd(""),-1);
 																							
 																							string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
 																							align_offset( getSize($$->type) );
@@ -1240,19 +1241,19 @@ logical_or_expression
 																							
 																							backpatch($4->falselist, instruction_num);
 																							// tmp_0 = 0
-																							emit( empty_opd, "", zero_opd , $$->place, instruction_num);
+																							emit( opd(""), "", opd("0") , $$->place, instruction_num);
 
 																							$$->falselist = makelist(instruction_num);
 																							// goto __
-																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																							emit(opd("goto"),"",opd(""),opd(""),-1);
 																							
 																							backpatch( merging($1->truelist, $4->truelist) , instruction_num);  
 																							// tmp_0 = 1
-																							emit(empty_opd,"",one_opd , $$->place, instruction_num);
+																							emit(opd(""),"",opd("1") , $$->place, instruction_num);
 																							
 																							$$->truelist = makelist( instruction_num);
 																							// goto __ 
-																							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+																							emit(opd("goto"),"",opd(""),opd(""),-1);
 																						}
 	;					
 					
@@ -1262,11 +1263,11 @@ new_or
 					
 									$$->falselist= merging( makelist(instruction_num) , $1->falselist);
 									// if tmp_0 == 0 goto ___
-									emit(IF_opd, "==", $1->place, GOTO_opd, -1);
+									emit(opd("if"), "==", $1->place, opd("goto"), -1);
 									
 									$$->truelist = merging( makelist(instruction_num), $1->truelist);
 									// goto ___
-									emit(GOTO_opd, "", empty_opd, empty_opd, -1);		
+									emit(opd("goto"), "", opd(""), opd(""), -1);		
 								}
 	;
 
@@ -1295,16 +1296,16 @@ conditional_expression
 																						         	$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));	
 																						         	
 																									// tmp_0 = tmp_1
-																						         	emit(empty_opd,"",$8->place , $$->place, instruction_num);
+																						         	emit(opd(""),"",$8->place , $$->place, instruction_num);
 																									// goto ___
-																						         	emit(GOTO_opd,"",empty_opd,empty_opd,instruction_num+2);
+																						         	emit(opd("goto"),"",opd(""),opd(""),instruction_num+2);
 																						         	backpatch( $8->truelist,  instruction_num + 2);					
 																						         	backpatch( $8->falselist, instruction_num + 2);						
 																						         	backpatch( $4->truelist , $5->instruction_number);					
 																						         	backpatch( $4->falselist , $5->instruction_number);					
 																						         	backpatch( $5->nextlist, instruction_num);
 																									// tmp_0 = tmp_1
-																						         	emit(empty_opd,"",$4->place , $$->place, instruction_num);
+																						         	emit(opd(""),"",$4->place , $$->place, instruction_num);
 																						        }
 																							}   
 	;
@@ -1316,7 +1317,7 @@ N
 							$$->nextlist = makelist(instruction_num);
 							
 							// goto ___
-							emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+							emit(opd("goto"),"",opd(""),opd(""),-1);
 						}
 	;
 
@@ -1343,15 +1344,15 @@ assignment_expression
 																												
 																												if($1->flag == 1){
 																													// tmp_0 = **tmp_1
-																													emit(star_opd,"",$3->place,$1->place,instruction_num);
+																													emit(opd("*"),"",$3->place,$1->place,instruction_num);
 																												}
 																												else if($3->flag == 1){
 																													// tmp_0 = *tmp_1
-																													emit(empty_opd,"*",$3->place,$1->place,instruction_num);
+																													emit(opd(""),"*",$3->place,$1->place,instruction_num);
 																												}
 																												else{
 																													// tmp_0 = tmp_1
-																													emit(empty_opd,"",$3->place,$1->place,instruction_num);
+																													emit(opd(""),"",$3->place,$1->place,instruction_num);
 																												} 
 																											}
 																											else{
@@ -1375,7 +1376,7 @@ assignment_expression
 
 																						  						emit( $1->place , str , $3->place, $$->place, instruction_num);
 																												// tmp_0 = tmp_1
-																						  						emit(empty_opd, "", $$->place, $1->place ,instruction_num);
+																						  						emit(opd(""), "", $$->place, $1->place ,instruction_num);
 																				                          	}
 
 																										}		
@@ -1468,8 +1469,15 @@ init_declarator
 	: declarator                   															{
 																									$$ = $1;
 																									if( check_type($1->type) ){
+																										// cout << " if" << endl;
 																										if( (find_entry(scope_st, $1->key)) ){
-																											yyerror($1->key + " is redeclared.");
+																											if((find_entry(scope_st, $1->key))->scope ==  curr_scope){
+																												yyerror($1->key + " is redeclared.");
+																											}
+																											else{
+																												insert_entry($1->key , $1->type , 0, $1->size, offset, curr_scope);
+																												align_offset($1->size);
+																											}
 																										}
 																									    else{
 																									    	insert_entry($1->key , $1->type , 0, $1->size, offset, curr_scope);
@@ -1482,7 +1490,7 @@ init_declarator
 																									}
 																									$$->place = create_opd($1->key,find_entry(scope_st,$1->key));																												
 																									// tmp_0 = 
-																									emit(empty_opd,"",empty_opd,$$->place,instruction_num);
+																									emit(opd(""),"",opd(""),$$->place,instruction_num);
 
 																							}
 	| declarator '=' initializer   															{
@@ -1506,13 +1514,22 @@ init_declarator
 
 																											$$->place = create_opd($1->key ,find_entry(scope_st , $1->key));																												
 																											// tmp_0 = tmp_1
-																											emit(empty_opd,"",$3->place,$$->place,instruction_num);
+																											emit(opd(""),"",$3->place,$$->place,instruction_num);
 																										}
-																										else{
+																										else if ((find_entry(scope_st,$1->key))->scope == curr_scope){
 																											yyerror($1->key + " is redeclared.");
 																										}
+																										else{
+																											insert_entry($1->key ,$1->type ,1 ,$1->size ,offset ,curr_scope);
+																											align_offset($1->size);
+
+																											$$->place = create_opd($1->key ,find_entry(scope_st , $1->key));																												
+																											// tmp_0 = tmp_1
+																											emit(opd(""),"",$3->place,$$->place,instruction_num);
+																										}
 																										
-																									}else{
+																									}
+																									else{
 																										$$->type = "incorrect";
 																										yyerror("Invalid type specification.");
 																									}
@@ -1707,7 +1724,7 @@ direct_declarator
 																									insert_entry($1->key , type_var, 0, $1->size, -1, 0);
 																									$1->place = create_opd($1->key, find_entry(scope_st, $1->key));
 																									// func name
-																									emit(func_opd,"",$1->place,empty_opd,-1);
+																									emit(opd("func"),"",$1->place,opd(""),-1);
 
 																									for(int i=0;i<args.size();i++){
 																										const char delim1 = ' ';
@@ -1733,7 +1750,7 @@ direct_declarator
 																		
 																										opd opd1 = create_opd(arg[arg.size()-1], find_entry(scope_st, arg[arg.size()-1]));
 																										
-																										emit(empty_opd, "", empty_opd, opd1, instruction_num);
+																										emit(opd(""), "", opd(""), opd1, instruction_num);
 																									}			
 																									
 																									func_params = "";
@@ -1755,7 +1772,7 @@ direct_declarator
 
 																									$1->place = create_opd($1->key, find_entry(scope_st, $1->key));
 																									// func name
-																									emit( func_opd, "", $1->place, empty_opd, -1);
+																									emit( opd("func"), "", $1->place, opd(""), -1);
 																								}	
 	| direct_declarator '(' B2 ')'																{
 																									$$ = new_1_node("()", $1);
@@ -1770,7 +1787,7 @@ direct_declarator
 
 																									$1->place = create_opd($1->key, find_entry(scope_st,$1->key));
 																									// func name
-																									emit(func_opd,"",$1->place,empty_opd,-1);
+																									emit(opd("func"),"",$1->place,opd(""),-1);
 																								}	
 	;	
 
@@ -1879,7 +1896,7 @@ case
 
 									opd case_opd = create_opd( tmp_0 , find_entry(scope_st, tmp_0) );
 									// case tmp_0																											
-									emit( empty_opd,"", $2->place, case_opd, instruction_num);
+									emit( opd(""),"", $2->place, case_opd, instruction_num);
 									
 									string tmp_1 = create_tmp_var( $$->type , offset,curr_scope);
 									align_offset( getSize($$->type) );
@@ -1889,7 +1906,7 @@ case
 									emit( case_opd , "-" , switch_opd, $$->place , instruction_num);
 									$$->nextlist = makelist( instruction_num);
 									// if tmp_1 != 0 goto __
-									emit( IF_opd, "!=" , $$->place , GOTO_opd ,-1);
+									emit( opd("if"), "!=" , $$->place , opd("goto") ,-1);
 									
 								}
 	;
@@ -1989,7 +2006,7 @@ expression_statement
 
 
 selection_statement
-	: IF '(' E1 ')' M statement							{	
+	: IF '(' E1 ')' M statement						{	
 															$$ = new_2_node("IF", $3, $6);
 															backpatch( $3->truelist , $5);
 
@@ -2026,12 +2043,12 @@ E1
 							$$->truelist = makelist(instruction_num);
 							$$->truelist = merging($$->truelist,$1->truelist);
 							// if tmp_0 != 0 goto ___
-							emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
+							emit(opd("if") , "!=" , $1->place , opd("goto") , -1);
 																
 							$$->falselist = makelist(instruction_num);
 							$$->falselist = merging($$->falselist , $1->falselist);
 							// goto ___
-							emit(GOTO_opd , "" , empty_opd , empty_opd , -1);
+							emit(opd("goto") , "" , opd("") , opd("") , -1);
 						}
 	;
 
@@ -2042,12 +2059,12 @@ E2
 									$$->truelist = makelist(instruction_num);
 									$$->truelist = merging($$->truelist , $1->truelist);
 									// if tmp_0 != 0 goto ___
-									emit(IF_opd , "!=" , $1->place , GOTO_opd , -1);
+									emit(opd("if") , "!=" , $1->place , opd("goto") , -1);
 																		
 									$$->falselist = makelist(instruction_num);
 									$$->falselist = merging($$->falselist , $1->falselist);
 									// goto ___
-									emit(GOTO_opd, "", empty_opd, empty_opd, -1);
+									emit(opd("goto"), "", opd(""), opd(""), -1);
 								}
 	;
 
@@ -2066,11 +2083,11 @@ printf_stmt
 	: PRINTF '(' STRING_VAL ')' ';'   															{
 																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);
 																									// printf stringval
-																									emit(PRINTF_opd, "", opd($3), empty_opd, instruction_num);
+																									emit(opd("printf"), "", opd($3), opd(""), instruction_num);
 																								}
 	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';'   										{
 																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);
-																									emit(PRINTF_opd, "", opd($3), zero_opd, instruction_num);
+																									emit(opd("printf"), "", opd($3), opd("0"), instruction_num);
 																								}
 
 printf_helper
@@ -2091,7 +2108,7 @@ printf_helper
 scanf_stmt
 	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' 											{
 																									$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);
-																									emit(SCANF_opd, "", opd($3), zero_opd, instruction_num);
+																									emit(opd("scanf"), "", opd($3), opd("0"), instruction_num);
 																								}
 	;
 
@@ -2113,7 +2130,7 @@ iteration_statement
 
 																								$$->nextlist = merging( $4->falselist , $7->breaklist);
 																								// goto ___
-																								emit(GOTO_opd , "" , empty_opd , empty_opd , $2);
+																								emit(opd("goto") , "" , opd("") , opd("") , $2);
 																							}
 	| DO M statement WHILE '(' M E1 N ')' ';'												{
 																								$$ = new_2_node("DO-WHILE", $3, $7);
@@ -2135,7 +2152,7 @@ iteration_statement
 
 																								backpatch($5->truelist,$7);
 																								// goto ____
-																								emit(GOTO_opd,"",empty_opd,empty_opd, $4);
+																								emit(opd("goto"),"",opd(""),opd(""), $4);
 																							}
 	| FOR '(' expression_statement M E2 M expression N ')' M statement						{
 																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, $7), $11);
@@ -2147,7 +2164,7 @@ iteration_statement
 																								backpatch( $5->truelist , $10);
 																								backpatch( $8->nextlist , $4);
 																								// goto ___
-																								emit( GOTO_opd , "" , empty_opd , empty_opd, $6);
+																								emit( opd("goto") , "" , opd("") , opd(""), $6);
 																							}
 	;
 
@@ -2159,7 +2176,7 @@ jump_statement
 									if( label_tabel.find($2) != label_tabel.end()){
 										auto label = label_tabel.find($2);
 										// goto ___
-										emit(GOTO_opd, "", empty_opd, empty_opd, label->second);
+										emit(opd("goto"), "", opd(""), opd(""), label->second);
 									}
 									else{
 										yyerror("Label does not exist");
@@ -2170,7 +2187,7 @@ jump_statement
 
 									$$->continuelist=makelist(instruction_num);
 									// goto ___
-									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+									emit(opd("goto"),"",opd(""),opd(""),-1);
 								
 								}
 	| BREAK ';'					{
@@ -2178,17 +2195,17 @@ jump_statement
 
 									$$->breaklist=makelist(instruction_num);
 									// goto ___
-									emit(GOTO_opd,"",empty_opd,empty_opd,-1);
+									emit(opd("goto"),"",opd(""),opd(""),-1);
 								}
 	| RETURN ';'				{
 									$$ = new_1_node("RETURN", NULL);
 									// return
-									emit(return_opd,"",empty_opd,empty_opd,-1);
+									emit(opd("return"),"",opd(""),opd(""),-1);
 								}
 	| RETURN expression ';'		{
 									$$ = new_1_node("RETURN", $2);
 									// return tmp_0
-									emit(return_opd, "", $2->place, empty_opd,-1);
+									emit(opd("return"), "", $2->place, opd(""),-1);
 								}
 	;
 
@@ -2282,7 +2299,6 @@ int main(int argc, char *argv[])
 	// starting scope
 	scope_st.push(0);
 	init_symtable();
-	initialise();
 
 
 	// for writing in dotfile
