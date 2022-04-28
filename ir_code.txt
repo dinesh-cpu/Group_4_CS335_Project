@@ -1,0 +1,33 @@
+0     func main
+1     a = 
+2     b = FALSE
+3     c = 'ab'
+4     i = 
+5     __tmp__0 = 1 + 2
+6     temp = __tmp__0
+7     __tmp__1 = temp < 5
+8     if __tmp__1 != 0 goto 10
+9     goto 15
+10     __tmp__2 = a == 2
+11     if __tmp__2 != 0 goto 13
+12     goto 16
+13     a = 3
+14     goto 16
+15     a = 3
+16     i = 0
+17     __tmp__3 = i < 10
+18     if __tmp__3 != 0 goto 23
+19     goto 25
+20     __tmp__4 = i
+21     i = __tmp__4 + 1
+22     goto 17
+23     temp = 5
+24     goto 20
+25     __tmp__5 = i < 20
+26     if __tmp__5 != 0 goto 28
+27     goto 31
+28     __tmp__6 = i
+29     i = __tmp__6 + 1
+30     goto 25
+31     printf "hello %v %d " from i, temp
+32     scanf "%d" from temp

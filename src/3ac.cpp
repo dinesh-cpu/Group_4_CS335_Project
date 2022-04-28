@@ -20,7 +20,7 @@ string ir_variable(string type, int offset, int scope)
 }
 
 // opd1 opr1 opd2 result
-void emit(pair<string, tEntry*> operand_1, string operator_1, pair<string, tEntry*> operand_2, pair<string, tEntry*> result, int line_num)
+void emit(pair<string, tEntry *> operand_1, string operator_1, pair<string, tEntry *> operand_2, pair<string, tEntry *> result, int line_num)
 {
     quad tmp;
     tmp.opd1 = operand_1, tmp.opd2 = operand_2, tmp.result = result, tmp.op = operator_1, tmp.line_num = line_num, global_emit.pb(tmp), emit_line++;
@@ -75,11 +75,6 @@ void make_ircode()
                 ir_output << scanf_helpers[i] << ", ";
             }
             ir_output << scanf_helpers[0] << endl;
-        }
-
-        else if (global_emit[i].opd1.first == "printf")
-        {
-            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << endl;
         }
 
         else if (global_emit[i].opd1.first == "*")

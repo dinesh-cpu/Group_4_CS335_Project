@@ -58,7 +58,7 @@ int yylex();
 %%
 
 primary_expression
-	: IDENTIFIER																			{	$$ = new_leaf_node($1);
+	: IDENTIFIER																			{	$$ = new_leaf_node($1);	
 																								tEntry* entry = lookup(scope_st,$1);
 																								if(entry == NULL){
 																												$$->type = "NULLTYPE";
@@ -136,7 +136,7 @@ postfix_expression
                                                                                             $$->flag = 1;
 																				
 																							if($3->s.substr(0,1) == "-"){
-																								yyerror( "Index of array " + $1->key + " cannot be negative.");
+																								yyerror( "Index of array " + $1->key + " negative is invald.");
 
 																							}
 																							else{ 
@@ -527,7 +527,7 @@ unary_expression
 																									$$->num = $2->num;
 																									$$->val_type = $2->val_type;
 
-											 														string typecheck = unary_expr($1->s, $2->type, 1);
+											 														string typecheck = unary_expr($1->s, $2->type);
 
 																									if(typecheck == ""){
 												 														yyerror("Not consistent with the operator " + $1->key);
@@ -651,7 +651,7 @@ multiplicative_expression
 																								// cout<< typecheck<< endl;
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply * operator on these variables.");
+																									yyerror(" * operator will not be used");
 																								}
 																								else{
 																									if(typecheck == "int"){
@@ -683,7 +683,7 @@ multiplicative_expression
 																								string typecheck = multiplicative_expr($1->type, $3->type, '/'); 
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply / operator on these variables");
+																									yyerror("/ operator is not applicable");
 																								}
 																								else{
 																									if(typecheck == "int")
@@ -716,7 +716,7 @@ multiplicative_expression
 																								string typecheck = multiplicative_expr($1->type, $3->type, '%'); 
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply % operator on these variables.");
+																									yyerror("% operator is not applicable");
 																								}
 																								else{
 																									if(typecheck == "int"){
@@ -748,7 +748,7 @@ additive_expression
 																								string typecheck = additive_expr($1->type,$3->type,'+');
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply + operator on these variables.");
+																									yyerror("+ operator is not applicable");
 																								}
 																								else{
 																									$$->type = typecheck;
@@ -772,7 +772,7 @@ additive_expression
 																								string typecheck = additive_expr($1->type , $3->type, '-');
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply - operator on these variables.");
+																									yyerror("- operator is not applicable.");
 																								}
 																								else {
 																									if( typecheck == "int")
@@ -805,7 +805,7 @@ shift_expression
 																  								string typecheck = shift_expr( $1->type , $3->type);
 																  								if( typecheck == ""){
 																									$$->type = "NULLTYPE";
-																								 	yyerror("Cannot apply << operator on these variables.");
+																								 	yyerror("<< operator is not applicable");
 																 								}
 																								else{
 																								  	$$->type = $1->type;
@@ -829,7 +829,7 @@ shift_expression
 																  								string typecheck = shift_expr($1->type, $3->type);
 																  								if(typecheck == ""){
 																									  $$->type = "NULLTYPE";
-																									  yyerror("Cannot apply >> operator on these variables.");
+																									  yyerror(">> operator is not applicable.");
 																  								}
 																								else{
 																									$$->type = $1->type;
@@ -856,7 +856,7 @@ relational_expression
 																								string typecheck = relational_expr($1->type , $3->type);
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply < operator on these variables.");
+																									yyerror("< operator is not applicable");
 																								}
 																								else{
 																									if( typecheck == "int"){
@@ -872,7 +872,7 @@ relational_expression
 																									}
 																									else if(typecheck == "Bool"){
 																										$$->type = "Bool";
-																										yyerror("Warning : Comparison between pointer and integer");
+																										yyerror("Invalid Comparison between pointer and integer");
 																									}
 																									else{
 																										yyerror("error in comparing");
@@ -888,7 +888,7 @@ relational_expression
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																								  	yyerror("Cannot apply > operator on these variables.");
+																								  	yyerror("> operator is not applicable.");
 																								}
 																								else{
 																									if(typecheck == "int"){
@@ -901,10 +901,6 @@ relational_expression
 																										$$->place = {tmp_0, tempen0};
 																										// tmp_0 = exp > exp
 																										emit($1->place, ">", $3->place, $$->place, emit_line);
-																									}
-																									else if(typecheck == "Bool"){
-																										$$->type = "Bool";
-																										yyerror("Warning : Comparison between pointer and integer");
 																									}
 																									else{
 																										yyerror("error in comparing");
@@ -921,7 +917,7 @@ relational_expression
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																								  	yyerror("Cannot apply <= operator on these variables.");
+																								  	yyerror("<= is not applicable.");
 																								}
 																								else{
 																									if(typecheck == "int"){
@@ -934,10 +930,6 @@ relational_expression
 																										$$->place = {tmp_0, tempen0};
 																										// tmp_0 = exp <= exp
 																										emit($1->place, "<=", $3->place, $$->place, emit_line);
-																									}
-																									else if(typecheck == "Bool"){
-																										$$->type = "Bool";
-																										yyerror("Warning : Comparison between pointer and integer");
 																									}
 																									else{
 																										yyerror("error in comparing");
@@ -954,7 +946,7 @@ relational_expression
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if( typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot apply >= operator on these variables.");
+																									yyerror(">= operator is not applicable");
 																								}
 																								else{
 																									if( typecheck == "int"){
@@ -971,7 +963,7 @@ relational_expression
 																									}
 																									else if(typecheck == "Bool"){
 																										$$->type = "Bool";
-																										yyerror("Warning : Comparison between pointer and integer");
+																										yyerror("Invalid Comparison between pointer and integer");
 																									}
 																									else{
 																										yyerror ("error in comparing.");
@@ -993,7 +985,7 @@ equality_expression
 																								string typecheck = equality_expr($1->type,$3->type);
 																								if( typecheck == ""){
 																									$$->type = "NULLTYPE";
-																								    yyerror("Cannot apply == operator on these variables.");
+																								    yyerror("== operator is not applicable.");
 																								}
 																								else{
 																									if(typecheck == "True"){
@@ -1012,7 +1004,7 @@ equality_expression
 																										yyerror("Comparison between pointer and integer");
 																									}
 																									else{
-																										yyerror("Cannot compute equality operation.");
+																										yyerror("equality operation is not valid.");
 																									}
 																								}																
 																							}
@@ -1025,7 +1017,7 @@ equality_expression
 																								string typecheck = equality_expr($1->type, $3->type);
 																								if( typecheck == ""){
 																									$$->type = "NULLTYPE";
-																								  	yyerror("Cannot apply != operator on these variables.");
+																								  	yyerror("!= operator is not valid.");
 																								}
 																								else{
 																									if( typecheck == "True"){
@@ -1043,7 +1035,7 @@ equality_expression
 																										yyerror("Comparison between pointer and integer");
 																									}
 																									else{
-																										yyerror("Cannot compute the != operation.");
+																										yyerror("!= operetor is not valid.");
 																									}
 																								}																
 																							}
@@ -1076,7 +1068,7 @@ and_expression
 																								}
 
 																								else{
-																									yyerror("Cannot compute & operator.");
+																									yyerror("& operator is not applicable.");
 																								}
 																							}
 	;
@@ -1106,7 +1098,7 @@ exclusive_or_expression
 																									emit($1->place,"^",$3->place,$$->place,emit_line);
 																								}	
 																								else {
-																									yyerror("Cannot compute xor operator.");
+																									yyerror("^ operator is not applicable.");
 																								}
 																							}
 	;
@@ -1148,7 +1140,7 @@ inclusive_or_expression
 																									emit( $1->place, "|", $3->place, $$->place, emit_line);
 																								}
 																								else{
-																									yyerror("Cannot compute | operation.");
+																									yyerror("| operation is not applicable.");
 																								}
 																							}						
 	;
@@ -1347,7 +1339,7 @@ assignment_expression
 
 																									if( typecheck == ""){
 																										$$->type = "NULLTYPE";
-																										yyerror("Cannot assign type " + $3->type + " to " + $1->type);
+																										yyerror("invalid assign type " + $3->type + " to " + $1->type);
 																									}
 																									else{
 																										if( typecheck == "true"){
@@ -1397,7 +1389,7 @@ assignment_expression
 																				                          	}
 
 																										}		
-																										else if( typecheck == "warning"){
+																										else if( typecheck == "pointer_error"){
 																											$$->type = $1->type;
 																											yyerror("Assignment with incompatible pointer type");
 																										}	
@@ -1512,7 +1504,7 @@ init_declarator
 																								string typecheck = assignment_expr($1->type, $3->type, "=");
 																								if(typecheck == ""){
 																									$$->type = "NULLTYPE";
-																									yyerror("Cannot assign type " + $3->type + " to " + $1->type);
+																									yyerror("invald assign type " + $3->type + " to " + $1->type);
 																								}
 																								else{			
 																									if( check_type($1->type) ){

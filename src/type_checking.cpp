@@ -2,35 +2,30 @@
 #include "symbol_table.h"
 #include <bits/stdc++.h>
 using namespace std;
- 
+
 bool isInteger(string type)
 {
     if (type == "int" || type == "short" || type == "long" || type == "long long" || type == "long long int" || type == "long int" || type == "short int" || type == "unsigned int" || type == "unsigned short" || type == "unsigned long" || type == "unsigned long long" || type == "unsigned long long int" || type == "unsigned long int" || type == "unsigned short int" || type == "signed int" || type == "signed short" || type == "signed long" || type == "signed long long" || type == "signed long long int" || type == "signed long int" || type == "signed short int")
     {
         return true;
     }
-
     else
     {
         return false;
     }
-
     return false;
 }
 
 bool isSignedInteger(string type)
 {
-
     if (type == "int" || type == "short" || type == "long" || type == "long long" || type == "long long int" || type == "long long int" || type == "long int" || type == "short int" || type == "signed int" || type == "signed short" || type == "signed long" || type == "signed long long" || type == "signed long long int" || type == "signed long int" || type == "signed short int")
     {
         return true;
     }
-
     else
     {
         return false;
     }
-
     return false;
 }
 
@@ -40,7 +35,6 @@ bool isFloat(string type)
     {
         return true;
     }
-
     else
     {
         return false;
@@ -75,41 +69,38 @@ string postfix_expr(string type)
     return "";
 }
 
-string unary_expr(string opr, string type, int production)
+string unary_expr(string opr, string type)
 {
     string type_new;
     unordered_map<string, int> m;
-
     m["-"] = 0, m["!"] = 1, m["*"] = 2, m["~"] = 3, m["+"] = 4, m["&"] = 5;
-
     int index = m[opr];
-    if (production == 1)
+
+    switch (index)
     {
-        switch (index)
-        {
-        case 0:
-            if (!(isInteger(type) || isFloat(type)))
-                return "";
-            break;
-        case 1:
-            if (!(type == "int"))
-                return "";
-            break;
-        case 2:
-            return type;
-            break;
-        case 3:
-            if (!(type == "int" || isInteger(type)))
-                return "";
-            break;
-        case 4:
-            if (!(isInteger(type) || isFloat(type)))
-                return "";
-            break;
-        case 5:
-            type = type + "*";
-            break;
-        }
+    case 0:
+        if (!(isInteger(type) || isFloat(type)))
+            return "";
+        break;
+    case 1:
+        if (!(type == "int"))
+            return "";
+        break;
+    case 2:
+        return type;
+        break;
+    case 3:
+        if (!(type == "int" || isInteger(type)))
+            return "";
+        break;
+    case 4:
+        if (!(isInteger(type) || isFloat(type)))
+            return "";
+        break;
+    case 5:
+        type = type + "*";
+        break;
+
         type_new = type;
     }
 
@@ -127,7 +118,7 @@ string multiplicative_expr(string t1, string t2, char opr)
     switch (index)
     {
     case 0:
-        if(t1 == "int" && t2 == "int")
+        if (t1 == "int" && t2 == "int")
             return "int";
         if (isInteger(t1) && isInteger(t2))
         {
@@ -136,27 +127,29 @@ string multiplicative_expr(string t1, string t2, char opr)
         }
         break;
     case 1:
-        if(t1 == "int" && t2 == "int")
+        if (t1 == "int" && t2 == "int")
             return "int";
         else if (isInteger(t1) && isInteger(t2))
         {
             type = "long long";
             return type;
         }
-        else{
+        else
+        {
             type = "float";
             return type;
         }
         break;
     case 2:
-        if(t1 == "int" && t2 == "int")
+        if (t1 == "int" && t2 == "int")
             return "int";
         else if (isInteger(t1) && isInteger(t2))
         {
             type = "long long";
             return type;
         }
-        else{
+        else
+        {
             type = "float";
             return type;
         }
@@ -173,7 +166,8 @@ string additive_expr(string t1, string t2, char opr)
 {
     int t = t1.size() - 1;
     int w = t2.size() - 1;
-    if(t1 == "int" && t2 == "int"){
+    if (t1 == "int" && t2 == "int")
+    {
         return "int";
     }
     else if (isInteger(t1) && isInteger(t2))
@@ -184,7 +178,7 @@ string additive_expr(string t1, string t2, char opr)
     {
         return "float";
     }
-    else if ( (isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2))   )
+    else if ((isFloat(t1) && isInteger(t2)) || (isInteger(t1) && isFloat(t2)) || (isFloat(t1) && isFloat(t2)))
     {
         return "long double";
     }
@@ -273,10 +267,6 @@ string equality_expr(string t1, string t2)
     {
         return lowtrue;
     }
-    else if (t2 == t2)
-    {
-        return captrue;
-    }
     else
     {
         return "";
@@ -286,7 +276,8 @@ string equality_expr(string t1, string t2)
 
 string bitwise_expr(string t1, string t2)
 {
-    if(isInteger(t1) && isInteger(t2)){
+    if (isInteger(t1) && isInteger(t2))
+    {
         return "true";
     }
     return "";
@@ -297,7 +288,8 @@ string conditional_expr(string t1, string t2)
 
     int t = t1.size() - 1;
     int w = t2.size() - 1;
-    if(t1==t2){
+    if (t1 == t2)
+    {
         return t1;
     }
 
@@ -310,7 +302,7 @@ string conditional_expr(string t1, string t2)
     {
         return "long double";
     }
-    
+
     if (t1[t] == '*' && t2[w] == '*')
     {
         return "void*";
@@ -322,12 +314,13 @@ string valid_assignment(string t1, string t2)
 {
     int t = t1.size() - 1;
     int w = t2.size() - 1;
-    if ((t1[t] == '*' && isInteger(t1)) || (t2[w] == '*' && isInteger(t2)) )
+    if ((t1[t] == '*' && isInteger(t1)) || (t2[w] == '*' && isInteger(t2)))
     {
-        return "warning";
+        return "pointer_error";
     }
-   
-    if(t1 == t2 ){
+
+    if (t1 == t2)
+    {
         return "true";
     }
     if (t1 == string("char"))
@@ -356,13 +349,14 @@ string valid_assignment(string t1, string t2)
     {
         return "true";
     }
-    
 
-    if(t1[t1.size() - 1] == '*' && t2[t2.size() - 1] == '*'){
-        return "warning";
+    if (t1[t1.size() - 1] == '*' && t2[t2.size() - 1] == '*')
+    {
+        return "pointer_error";
     }
+    return "";
 }
-    
+
 string assignment_expr(string t1, string t2, string opr)
 {
     unordered_map<string, int> m;
@@ -468,64 +462,64 @@ bool is_keyword(string key)
 }
 
 // new function
-bool check_type (string type){
-    if(type == "char" )
+bool check_type(string type)
+{
+    if (type == "char")
         return true;
-    if(type == "int" )
+    if (type == "int")
         return true;
-    if(type == "bool")
+    if (type == "bool")
         return true;
-    if(type == "long int" )
+    if (type == "long int")
         return true;
-    if(type == "long long" )
+    if (type == "long long")
         return true;
-    if(type == "long")
+    if (type == "long")
         return true;
-    if(type == "long long int")
-        return true;
-
-    if(type == "unsigned int" )
-        return true;
-    if(type == "unsigned long int")
-        return true;
-    if(type == "unsigned long long")
-        return true;
-    if(type == "unsigned long")
-        return true;
-    if(type == "unsigned long long int")
+    if (type == "long long int")
         return true;
 
-    if(type == "signed int")
+    if (type == "unsigned int")
         return true;
-    if(type == "signed long int")
+    if (type == "unsigned long int")
         return true;
-    if(type == "signed long long" )
+    if (type == "unsigned long long")
         return true;
-    if(type == "signed long")
+    if (type == "unsigned long")
         return true;
-    if(type == "signed long long int")
-        return true;
-    
-    if(type == "short")
-        return true;
-    if(type == "short int" )
-        return true;
-    if(type == "signed short int")
-        return true;
-    if(type == "unsigned short int" )
+    if (type == "unsigned long long int")
         return true;
 
-    if(type == "float") 
+    if (type == "signed int")
         return true;
-    if(type == "double") 
+    if (type == "signed long int")
         return true;
-    if(type == "long double") 
+    if (type == "signed long long")
         return true;
-    if(type == "string") 
+    if (type == "signed long")
         return true;
-    if(type.substr(0,6) == "struct") 
-        return (struct_size(type)!=0) || (struct_size(type.substr(0, type.size()-2))!=0);
-    
+    if (type == "signed long long int")
+        return true;
+
+    if (type == "short")
+        return true;
+    if (type == "short int")
+        return true;
+    if (type == "signed short int")
+        return true;
+    if (type == "unsigned short int")
+        return true;
+
+    if (type == "float")
+        return true;
+    if (type == "double")
+        return true;
+    if (type == "long double")
+        return true;
+    if (type == "string")
+        return true;
+    if (type.substr(0, 6) == "struct")
+        return (struct_size(type) != 0) || (struct_size(type.substr(0, type.size() - 2)) != 0);
+
     return false;
-
 }

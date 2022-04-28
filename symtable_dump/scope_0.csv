@@ -1,0 +1,4 @@
+name, type, size, offset, initialised, scope
+main, int, 4, -1, 0, 0
+FALSE, bool, 4, 1, 1, 0
+TRUE, bool, 4, 1, 1, 0
