@@ -12,7 +12,9 @@ int main(){
     long long temp11 = 23423;
 
     // arrays
+
     int arr[6] = { 3, 4, 5, 6, -3, 100};
+    int k = arr[1] + arr[2];
     arr[4] = arr[3] + arr[2];
     
     return 0;

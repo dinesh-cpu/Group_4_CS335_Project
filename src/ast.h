@@ -21,9 +21,9 @@ typedef struct node
 	int val_type; // 1 int, 2 long, 3 float, 4 double, 5 long long
 	int isidentifier;
 	double num;
-	int instruction_number;
-	vi nextlist, truelist, falselist, continuelist, breaklist, caselist;
-	opd place;  // place for every node
+	int line_used;
+	vi nextlist, truelist, falselist, continuelist, breaklist;
+	pair<string, tEntry*> place;  // place for every node
 	int flag;  
 
 	// not working
@@ -36,7 +36,7 @@ void backpatch(vi list, int line);
 vi merging(vi l1, vi l2);
 vi makelist(int line_num);
 ul assign_ID();
-extern vector<opd> parameter_p;
+extern vector<pair<string, tEntry*>> parameter_p;
 
 node *init_leaf_node(node *leaf_node);
 node *new_leaf_node(const string &val);

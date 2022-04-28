@@ -2,40 +2,31 @@
 #include "3ac.h"
 using namespace std;
 
-#define ll long long int
 #define pb push_back
-opd switch_opd, case_opd;
 #define vi vector<int>
 
 vector<quad> global_emit;
-ll instruction_num;
-int tmp_variable = 0;
+int emit_line;
+int tmp_count = 0;
 
-opd create_opd(string s, tEntry *entry)
+string ir_variable(string type, int offset, int scope)
 {
-    opd tmp;
-    tmp.s = s, tmp.entry = entry;
-    return tmp;
-}
-
-string create_tmp_var(string type, int offset, int scope)
-{
-    string temp = to_string(tmp_variable);
+    string temp = to_string(tmp_count);
     string temp_label = "__tmp__" + temp;
     string label = temp_label;
-    ++tmp_variable;
+    ++tmp_count;
     insert_entry(label, type, 1, getSize(type), offset, scope);
     return label;
 }
 
 // opd1 opr1 opd2 result
-void emit(opd operand_1, string operator_1, opd operand_2, opd result, int line_num)
+void emit(pair<string, tEntry*> operand_1, string operator_1, pair<string, tEntry*> operand_2, pair<string, tEntry*> result, int line_num)
 {
     quad tmp;
-    tmp.opd1 = operand_1, tmp.opd2 = operand_2, tmp.result = result, tmp.op = operator_1, tmp.line_num = line_num, global_emit.pb(tmp), instruction_num++;
+    tmp.opd1 = operand_1, tmp.opd2 = operand_2, tmp.result = result, tmp.op = operator_1, tmp.line_num = line_num, global_emit.pb(tmp), emit_line++;
 }
 
-void dump_emit_list()
+void make_ircode()
 {
     fstream ir_output;
     ir_output.open("ir_code.txt", fstream::out);
@@ -44,30 +35,30 @@ void dump_emit_list()
     while (i != global_emit.size())
     {
         string temp = to_string(i);
-        if (global_emit[i].result.s == "goto")
+        if (global_emit[i].result.first == "goto")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << " " << global_emit[i].op << " 0 " << global_emit[i].result.s << " " << global_emit[i].line_num << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << " " << global_emit[i].op << " 0 " << global_emit[i].result.first << " " << global_emit[i].line_num << endl;
         }
 
-        else if (global_emit[i].opd1.s == "return")
+        else if (global_emit[i].opd1.first == "return")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << endl;
         }
 
-        else if (global_emit[i].opd1.s == "func")
+        else if (global_emit[i].opd1.first == "func")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << endl;
         }
 
-        else if (global_emit[i].opd1.s == "call")
+        else if (global_emit[i].opd1.first == "call")
         {
             // cout << "call" <<endl;
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << endl;
         }
 
-        else if (global_emit[i].opd1.s == "printf" && global_emit[i].result.s == "0")
+        else if (global_emit[i].opd1.first == "printf" && global_emit[i].result.first == "0")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << " from ";
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << " from ";
             for (int i = printf_helpers.size() - 1; i > 0; i--)
             {
                 ir_output << printf_helpers[i] << ", ";
@@ -75,9 +66,9 @@ void dump_emit_list()
             ir_output << printf_helpers[0] << endl;
         }
 
-        else if (global_emit[i].opd1.s == "scanf")
+        else if (global_emit[i].opd1.first == "scanf")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << " from ";
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << " from ";
 
             for (int i = scanf_helpers.size() - 1; i > 0; i--)
             {
@@ -86,28 +77,28 @@ void dump_emit_list()
             ir_output << scanf_helpers[0] << endl;
         }
 
-        else if (global_emit[i].opd1.s == "printf")
+        else if (global_emit[i].opd1.first == "printf")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].opd2.first << endl;
         }
 
-        else if (global_emit[i].opd1.s == "*")
+        else if (global_emit[i].opd1.first == "*")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << global_emit[i].result.s << " = " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << global_emit[i].result.first << " = " << global_emit[i].opd2.first << endl;
         }
 
-        else if (global_emit[i].result.s == "")
+        else if (global_emit[i].result.first == "")
         {
-            ir_output << temp + "     " << global_emit[i].opd1.s << " " << global_emit[i].line_num << endl;
+            ir_output << temp + "     " << global_emit[i].opd1.first << " " << global_emit[i].line_num << endl;
         }
 
         else if (global_emit[i].op == "")
         {
-            ir_output << temp + "     " << global_emit[i].result.s << " = " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].result.first << " = " << global_emit[i].opd2.first << endl;
         }
 
         else
-            ir_output << temp + "     " << global_emit[i].result.s << " = " << global_emit[i].opd1.s << " " << global_emit[i].op << " " << global_emit[i].opd2.s << endl;
+            ir_output << temp + "     " << global_emit[i].result.first << " = " << global_emit[i].opd1.first << " " << global_emit[i].op << " " << global_emit[i].opd2.first << endl;
 
         i++;
     }

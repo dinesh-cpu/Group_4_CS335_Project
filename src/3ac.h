@@ -1,36 +1,21 @@
 #include <bits/stdc++.h>
 #include "symbol_table.h"
 using namespace std;
- 
-typedef struct opd{
-    string s;
-    tEntry* entry;
-    opd(){}
-    opd(string str):
-        s(str){}
-    opd(string str, tEntry* ptr):
-        s(str),
-        entry(ptr){}
-}opd;
 
 typedef struct quad{
     int line_num;
     string op;
-    opd opd1;
-    opd opd2;
-    opd result;
+    pair<string, tEntry*> opd1;
+    pair<string, tEntry*> opd2;
+    pair<string, tEntry*> result;
 }quad;
 
 extern vector<quad> global_emit;
-extern long long int instruction_num;
+extern int emit_line;
 extern vector<string> printf_helpers;
 extern vector<string> scanf_helpers;
-extern opd switch_opd;
-extern opd case_opd;
 
-void emit(opd opd1, string op, opd opd2, opd result, int line_num);
-opd create_opd(string s,tEntry* entry);
+void emit(pair<string, tEntry*> opd1, string op, pair<string, tEntry*> opd2, pair<string, tEntry*> result, int line_num);
 
-void initialise_3ac();
-void dump_emit_list();
-string create_tmp_var(string type, int offset, int scope);
+void make_ircode();
+string ir_variable(string type, int offset, int scope);

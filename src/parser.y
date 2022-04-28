@@ -1,14 +1,8 @@
 %{
 #include <bits/stdc++.h>
-#include <stdio.h>
-#include <string>
-#include <stdlib.h>
 #include "parser.tab.h"
 #include "ast.h"
 #include "type_checking.h"
-#include <iostream>
-#include <vector>
-#include <utility>
 
 using namespace std;
 
@@ -22,8 +16,7 @@ int yylex();
 %locations
 
 %union{
-    int num;
-	long long int instr;
+	int line_num;
     char *Str;
     struct node* Node;
 }
@@ -58,35 +51,26 @@ int yylex();
 %type<Node> declaration specifier_qualifier_list direct_declarator parameter_declaration identifier_list 
 %type<Node> declaration_list declarator struct_declaration struct_declaration_list pointer struct_declarator_list
 %type<Node> parameter_list parameter_type_list type_name abstract_declarator direct_abstract_declarator 
-%type<Node> A1 A2 typevar_NULL B2 k1 S1 S2 E1 E2 external_struct_declaration N new_or new_and case
+%type<Node> S1 E1 E2 external_struct_declaration N new_or new_and C1 C2
 %start program
 
-
-%type<instr> M 
+%type<line_num> M 
 %%
 
 primary_expression
 	: IDENTIFIER																			{	$$ = new_leaf_node($1);
-																								tEntry* entry = find_entry(scope_st,$1);
-																								if(!entry){
-																												$$->type = "incorrect";
+																								tEntry* entry = lookup(scope_st,$1);
+																								if(entry == NULL){
+																												$$->type = "NULLTYPE";
 																												yyerror(string($1) + " is not declared");
-																										}
-																								else{	
-																									if(entry->type == ""){
-																										$$->type = "incorrect";
-																										yyerror(string($1) + " is not declared in this scope.");
-																									}
-																									else{
-																										//entry
-																										$$->size = entry->size;
-																										$$->init = entry->init;
-																										$$->type = entry->type;
-																										$$->key = $$->s;
-																										$$->isidentifier = 1;
-																										// opd place
-																										$$->place = create_opd($$->key,entry);	
-																									}
+																								}
+																								else{
+																									$$->size = entry->size;
+																									$$->init = entry->init;
+																									$$->type = entry->type;
+																									$$->key = $$->s;
+																									$$->isidentifier = 1;
+																									$$->place = {$$->key,entry};	
 																								}
 																							}
 	| CONSTANT																				{
@@ -101,7 +85,7 @@ primary_expression
 																									$$->num = num;
 																									$$->type = "int";
 
-																									$$->place = opd($1);
+																									$$->place = {$1, NULL};
 																								}
 																								else {
 																									// float
@@ -109,7 +93,7 @@ primary_expression
 																									$$->num = num;
 																									$$->type = "float";
 
-																									$$->place = opd($1);
+																									$$->place = {$1, NULL};
 																								}
 																							}
 	| CHAR_CONSTANT																			{
@@ -118,7 +102,7 @@ primary_expression
 																								$$->init = 1;
 																								$$->type = "char";
 																																															
-																								$$->place = opd($1);
+																								$$->place = {$1, NULL};
 																							}
 																							
 	| STRING_VAL																			{	// cout << "string called"<<endl;
@@ -136,7 +120,7 @@ primary_expression
 																								$$->type = "string";
 																								$$->key = $$->s;
 																								
-																								$$->place = opd($1);
+																								$$->place = {$1, NULL};
 																							}
 	| '(' expression ')'                        											{
 																								$$=$2;
@@ -156,12 +140,12 @@ postfix_expression
 
 																							}
 																							else{ 
-																								tEntry* entry = find_entry(scope_st, $1->key);
+																								tEntry* entry = lookup(scope_st, $1->key);
 																								if(entry){
 																									$$->type = entry->type;
 																								}
 																								else{
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror($1->key + " is not declared");
 																								}
 
@@ -178,15 +162,17 @@ postfix_expression
 																										$$->init = 1;
 	
 																									// tmp_0 = n * size
-																									string tmp_0 = create_tmp_var( $3->type , offset, curr_scope);
+																									string tmp_0 = ir_variable( $3->type , offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($3->type) );
-																									emit($3->place, "*", opd(to_string(getSize($$->type))), tmp_0, instruction_num);
+																									emit($3->place, "*", {to_string(getSize($$->type)), NULL}, {tmp_0, tempen0}, emit_line);
 	
 																									// tmp_1 = arr + tmp_0
-																									string tmp_1 = create_tmp_var($$->type + " *", offset, curr_scope);
+																									string tmp_1 = ir_variable($$->type + " *", offset, curr_scope);
+																									tEntry* tempen1 = lookup(scope_st, tmp_1);
 																									align_offset( getSize($$->type + " *") );
-																									emit($1->place , "+", tmp_0, tmp_1, instruction_num );
-																									$$->place = tmp_1;
+																									emit($1->place , "+", {tmp_0, tempen0}, {tmp_1, tempen1}, emit_line );
+																									$$->place = {tmp_1, tempen1};
 																								}
 																							}
 																						}
@@ -194,7 +180,7 @@ postfix_expression
 	| postfix_expression '(' ')'															{	
 																								$$ = new_1_node("()", $1);
 
-																							 	tEntry* entry=find_entry(scope_st,$1->key);
+																							 	tEntry* entry=lookup(scope_st,$1->key);
 																								if(entry){
 																									$$->type = entry->type;
 																									$$->key = $1->key;
@@ -203,7 +189,7 @@ postfix_expression
 																									$$->init = $1->init;
 
 																									if(entry->type == ""){
-																										yyerror("Incorrect function call.");
+																										yyerror("NULLTYPE function call.");
 																									}
 
 																									string funcname = $$->type+" "+$1->key;
@@ -212,19 +198,19 @@ postfix_expression
 																										yyerror("The Function " + $1->key + " is not yet declared");
 																									}
 																									else{
-																										emit(opd("call"), "", $1->place, opd(""),-1);
+																										emit({string("call"), NULL}, "", $1->place, {"", NULL},-1);
 																									}
 																									// no function arguments
 																									func_args="";
 																								}
 																								else{
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror($1->key +  " is not yet declared");
 																								}
 																							}
 	| postfix_expression '(' argument_expression_list ')' 									{	
 																								$$ = new_2_node("()", $1,$3);
-																							 	tEntry* entry = find_entry(scope_st,$1->key);
+																							 	tEntry* entry = lookup(scope_st,$1->key);
 
 																								if(entry){
 																									if($1->init == 1 && $3->init == 1)
@@ -233,7 +219,7 @@ postfix_expression
 																									$$->key = $1->key;
 																									$$->val_type = $1->val_type;
 																									$$->num = $1->num;
-																									$$->place = opd($1->key,find_entry(scope_st,$1->key));
+																									$$->place = {$1->key,lookup(scope_st,$1->key)};
 
 																									string funcname = $$->type+" "+$1->key;
 
@@ -269,11 +255,11 @@ postfix_expression
 																											    if( param1[i].substr( 0, arg1[i].size()) != arg1[i]){
 																											       yyerror("Invalid arguments");
 																												}										
-																												opd parameters = create_opd( "__argument"+to_string(i) + "__", parameter_p[i].entry);
-																												emit( opd("") , "" , parameter_p[i] , parameters , -1);
+																												pair<string, tEntry*> parameters = {string("__argument"+to_string(i) + "__"), parameter_p[i].second};
+																												emit( {"", NULL} , "" , parameter_p[i] , parameters , -1);
 																											}
 																											// call function
-																											emit(opd("call") , "" , $1->place , opd("") , -1);
+																											emit( {string("call"), NULL} , "" , $1->place , { "", NULL} , -1);
 																											parameter_p.clear();
 																										}
 																										else 
@@ -281,14 +267,14 @@ postfix_expression
 																									}
 																								}
 																								else{
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror($1->key + " is not yet declared");
 																								}
 																							}
 	| postfix_expression '.' IDENTIFIER														{	
 
 																								$$ = new_2_node("." , $1 , new_leaf_node($3));
-																								tEntry* entry = find_entry(scope_st,$1->key);
+																								tEntry* entry = lookup(scope_st,$1->key);
 																								$$->key = $1->key;
 
 																								// struct
@@ -306,16 +292,17 @@ postfix_expression
 																									}
 																									
 																									// tmp_0 = struct name + offset
-																									string tmp_0 = create_tmp_var($$->type + " *",offset,curr_scope);
+																									string tmp_0 = ir_variable($$->type + " *",offset,curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type + " *") );
-																									emit( $1->place ,"+" , opd(to_string(struct_entry->offset)) , tmp_0 , instruction_num);
+																									emit( $1->place ,"+" , {to_string(struct_entry->offset), NULL} , {tmp_0, tempen0} , emit_line);
 																									
-																									$$->place = tmp_0;
+																									$$->place = { tmp_0, tempen0};
 
 																								}	
 
 																								else{
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror($1->key + " is not yet declared.");
 																								}
 																							}
@@ -347,21 +334,22 @@ postfix_expression
 																								string typecheck = postfix_expr( $1->type );
 																								// type is not integer
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								    yyerror($1->key + " doesn't have suitable type for increment operation");
 																								}
 																								// integer
 																								else{
 																								   	$$->type = typecheck;
 
-																								   	string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																								   	string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																								   	align_offset( getSize($$->type) );
 
-																								   	$$->place = create_opd(tmp_0, find_entry( scope_st, tmp_0));
+																								   	$$->place = {tmp_0, tempen0};
 																									// tmp_0 = variable
-																								   	emit(opd("") , "" , $1->place , $$->place , instruction_num);
+																								   	emit({ "", NULL} , "" , $1->place , $$->place , emit_line);
 																									// variable = tmp_0 + 1
-																									emit($$->place, "+" , opd("1") , $1->place , instruction_num);
+																									emit($$->place, "+" , {string("1"), NULL} , $1->place , emit_line);
 																								}
 																							}
 	| postfix_expression DECREMENT															{
@@ -378,21 +366,22 @@ postfix_expression
 																								string typecheck = postfix_expr($1 -> type);
 																								// type is not integer
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								    yyerror($1->key + " doesn't have suitable type for decrement operation");
 																								}
 																							
 																								else{
 																								   	$$->type = typecheck;
 
-																								   	string tmp_0 = create_tmp_var( $$->type, offset , curr_scope);
+																								   	string tmp_0 = ir_variable( $$->type, offset , curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd( tmp_0, find_entry(scope_st , tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = variable
-																									emit(opd("") ,"" , $1->place , $$->place, instruction_num);
+																									emit({ "", NULL} ,"" , $1->place , $$->place, emit_line);
 																									// variable = tmp_0 + 1
-																									emit($$->place , "-", opd("1"), $1->place, instruction_num);
+																									emit($$->place , "-", {string("1"), NULL}, $1->place, emit_line);
 																								}
 																							}	
 	;
@@ -439,7 +428,7 @@ unary_expression
 	: postfix_expression																	{ $$ = $1; }				
 	| INCREMENT unary_expression															{   
 																								$$ = new_1_node("++", $2);
-																								tEntry* entry = find_entry( scope_st , $2->key );
+																								tEntry* entry = lookup( scope_st , $2->key );
 
 																								if(entry){
 																									$$->num = $2->num+1;
@@ -459,20 +448,21 @@ unary_expression
 
 											 															string typecheck = postfix_expr($2->type);
 																										if(typecheck == ""){
-																												 $$->type = "incorrect";
+																												 $$->type = "NULLTYPE";
 																												 yyerror($2->key + " doesnot have suitable type for increment operation");
 											 															}
 																										else{
 																											$$->type = typecheck;
 
-																											string tmp_0 = create_tmp_var($$->type , offset ,  curr_scope);
+																											string tmp_0 = ir_variable($$->type , offset ,  curr_scope);
+																											tEntry* tempen0 = lookup(scope_st, tmp_0);
 																											align_offset( getSize($$->type) );
 
-																											$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																											$$->place = {tmp_0, tempen0};
 																											// tmp_0 = variable + 1	
-																											emit($2->place , "+" , opd("1"),  $$->place, instruction_num);
+																											emit($2->place , "+" , {string("1"), NULL},  $$->place, emit_line);
 																											// variable = tmp_0
-																											emit(opd("") , "", $$->place, $2->place, instruction_num);
+																											emit({ "", NULL} , "", $$->place, $2->place, emit_line);
 											 															}
 																									}
 																									
@@ -480,7 +470,7 @@ unary_expression
 																							}
 
 	| DECREMENT unary_expression															{	$$ = new_1_node("--", $2);
-																								tEntry* entry=find_entry(scope_st,$2->key);
+																								tEntry* entry=lookup(scope_st,$2->key);
 
 																								if(entry){
 																									$$->num = $2->num-1;
@@ -499,20 +489,21 @@ unary_expression
 
 																										string typecheck = postfix_expr($2 -> type);
 																										if(typecheck == ""){
-																											$$->type = "incorrect";
+																											$$->type = "NULLTYPE";
 																											yyerror($2->key + " doesnot have suitable type for decrement operation");
 																										}
 																										else{
 																											$$->type = typecheck;
 
-																											string tmp_0 = create_tmp_var( $$->type , offset, curr_scope);
+																											string tmp_0 = ir_variable( $$->type , offset, curr_scope);
+																											tEntry* tempen0 = lookup(scope_st, tmp_0);
 																											align_offset( getSize($$->type) );
 
-																											$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));	
+																											$$->place = {tmp_0, tempen0};	
 																											// tmp_0 = variable + 1
-																											emit($2->place, "-" , opd("1") , $$->place , instruction_num);
+																											emit($2->place, "-" , {string("1"), NULL} , $$->place , emit_line);
 																											// variable = tmp_0
-																											emit(opd(""), "" , $$->place , $2->place , instruction_num);  
+																											emit({ "", NULL}, "" , $$->place , $2->place , emit_line);  
 																										}	
 																									}
 																								}
@@ -521,7 +512,7 @@ unary_expression
 	| unary_operator cast_expression       													{
 																								make_children($1, $2, NULL, NULL); 
 																								$$ = $1;
-																								tEntry* entry=find_entry(scope_st , $2->s);
+																								tEntry* entry=lookup(scope_st , $2->s);
 
 																								if(!entry){
 																									yyerror($2->key+" is not declared");
@@ -565,11 +556,12 @@ unary_expression
 																									}
 
 																									else {
-																										string tmp_0 = create_tmp_var($$->type , offset,  curr_scope);
+																										string tmp_0 = ir_variable($$->type , offset,  curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));
-																										emit(opd("") , $1->s , $2->place , $$->place , instruction_num);
+																										$$->place = {tmp_0, tempen0};
+																										emit({ "", NULL} , $1->s , $2->place , $$->place , emit_line);
 																									}	
 																								}
 																							}
@@ -624,12 +616,12 @@ unary_operator
 		 																						$$ = $1;
 
 																								if($1->flag == 1){		
-																									string tmp_0 = create_tmp_var( $1->type , offset , curr_scope);
+																									string tmp_0 = ir_variable( $1->type , offset , curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize( $1->type) );
 
-																									opd tmp_1 = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
-																									emit(opd(""), "*", $1->place, tmp_1, instruction_num);
-																									$$->place = tmp_1;
+																									emit({ "", NULL}, "*", $1->place, {tmp_0, tempen0}, emit_line);
+																									$$->place = {tmp_0, tempen0};
 																								}
 
 																								// reset flag
@@ -658,7 +650,7 @@ multiplicative_expression
 																								string typecheck = multiplicative_expr($1->type, $3->type, '*'); 
 																								// cout<< typecheck<< endl;
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply * operator on these variables.");
 																								}
 																								else{
@@ -671,12 +663,13 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 
-																									string tmp_0 = create_tmp_var ( $$->type , offset , curr_scope);
+																									string tmp_0 = ir_variable ( $$->type , offset , curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));	
+																									$$->place = {tmp_0, tempen0};	
 																									// tmp_0 = exp * exp
-																									emit( $1->place , "*" , $3->place , $$->place , instruction_num);
+																									emit( $1->place , "*" , $3->place , $$->place , emit_line);
 																								} 	
 																							}
 
@@ -689,7 +682,7 @@ multiplicative_expression
 
 																								string typecheck = multiplicative_expr($1->type, $3->type, '/'); 
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply / operator on these variables");
 																								}
 																								else{
@@ -700,12 +693,13 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 																									
-																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp / exp
-																									emit($1->place, "/", $3->place, $$->place, instruction_num);	
+																									emit($1->place, "/", $3->place, $$->place, emit_line);	
 																								} 	
 																							}														
 																
@@ -721,7 +715,7 @@ multiplicative_expression
 
 																								string typecheck = multiplicative_expr($1->type, $3->type, '%'); 
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply % operator on these variables.");
 																								}
 																								else{
@@ -731,12 +725,13 @@ multiplicative_expression
 																									else 
 																										$$->type = typecheck;
 
-																									string tmp_0 = create_tmp_var( $$->type ,offset ,curr_scope);
+																									string tmp_0 = ir_variable( $$->type ,offset ,curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp % exp
-																									emit($1->place, "%" ,$3->place , $$->place ,instruction_num);
+																									emit($1->place, "%" ,$3->place , $$->place ,emit_line);
 																								}
 																							}
 	;
@@ -752,17 +747,18 @@ additive_expression
 																									
 																								string typecheck = additive_expr($1->type,$3->type,'+');
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply + operator on these variables.");
 																								}
 																								else{
 																									$$->type = typecheck;
-																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp + exp
-																									emit($1->place, "+", $3->place, $$->place, instruction_num);
+																									emit($1->place, "+", $3->place, $$->place, emit_line);
 																								} 
 																								
 																 							}
@@ -775,7 +771,7 @@ additive_expression
 																									
 																								string typecheck = additive_expr($1->type , $3->type, '-');
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply - operator on these variables.");
 																								}
 																								else {
@@ -786,12 +782,13 @@ additive_expression
 																									else 
 																										$$->type = typecheck;
 
-																									string tmp=create_tmp_var($$->type,offset,curr_scope);
+																									string tmp=ir_variable($$->type,offset,curr_scope);
+																									tEntry* tempen = lookup(scope_st, tmp);
 																									align_offset(getSize($$->type));
 
-																									$$->place = create_opd(tmp,find_entry(scope_st,tmp));	
+																									$$->place = {tmp, tempen};	
 																									// tmp_0 = exp - exp
-																									emit($1->place , "-" , $3->place , $$->place , instruction_num);
+																									emit($1->place , "-" , $3->place , $$->place , emit_line);
 																								}
 																							}							
 	;
@@ -807,17 +804,18 @@ shift_expression
 																  								 	
 																  								string typecheck = shift_expr( $1->type , $3->type);
 																  								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								 	yyerror("Cannot apply << operator on these variables.");
 																 								}
 																								else{
 																								  	$$->type = $1->type;
-																									string tmp_0 = create_tmp_var($$->type , offset , curr_scope);
+																									string tmp_0 = ir_variable($$->type , offset , curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp << exp
-																									emit($1->place,"<<", $3->place , $$->place , instruction_num);
+																									emit($1->place,"<<", $3->place , $$->place , emit_line);
 																 								}
 																								
 																 							}
@@ -830,17 +828,18 @@ shift_expression
 																   									
 																  								string typecheck = shift_expr($1->type, $3->type);
 																  								if(typecheck == ""){
-																									  $$->type = "incorrect";
+																									  $$->type = "NULLTYPE";
 																									  yyerror("Cannot apply >> operator on these variables.");
 																  								}
 																								else{
 																									$$->type = $1->type;
-																									string tmp_0 = create_tmp_var($$->type ,offset, curr_scope);
+																									string tmp_0 = ir_variable($$->type ,offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																		                 			align_offset( getSize($$->type) );
 
-																		                 			$$->place = create_opd(tmp_0 , find_entry(scope_st ,tmp_0));																												
+																		                 			$$->place = {tmp_0, tempen0};																												
 																		                 			// tmp_0 = exp >> exp
-																		                 			emit($1->place,">>" , $3->place , $$->place , instruction_num);
+																		                 			emit($1->place,">>" , $3->place , $$->place , emit_line);
 																  								}
 																							}
 	;
@@ -856,19 +855,20 @@ relational_expression
 
 																								string typecheck = relational_expr($1->type , $3->type);
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply < operator on these variables.");
 																								}
 																								else{
 																									if( typecheck == "int"){
 																										$$->type = "int";
 
-																										string tmp_0 = create_tmp_var( $$->type,offset ,curr_scope);
+																										string tmp_0 = ir_variable( $$->type,offset ,curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0 , find_entry(scope_st , tmp_0));																												
+																										$$->place = {tmp_0, tempen0};																												
 																										// tmp_0 = exp < exp
-																										emit($1->place,"<",$3->place,$$->place,instruction_num);	
+																										emit($1->place,"<",$3->place,$$->place,emit_line);	
 																									}
 																									else if(typecheck == "Bool"){
 																										$$->type = "Bool";
@@ -881,25 +881,26 @@ relational_expression
 																								
 																							}							
 	| relational_expression '>' shift_expression											{	$$ = new_2_node(">", $1, $3);
-																								$$->key=$1->key;	
+																								$$->key = $1->key;	
 																								if($1->init==1 && $3->init==1) 
 																									$$->init=1;
 
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								  	yyerror("Cannot apply > operator on these variables.");
 																								}
 																								else{
 																									if(typecheck == "int"){
 																										$$->type = "int";
 
-																										string tmp_0 = create_tmp_var($$->type ,offset ,curr_scope);
+																										string tmp_0 = ir_variable($$->type ,offset ,curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0 ,find_entry(scope_st ,tmp_0));
+																										$$->place = {tmp_0, tempen0};
 																										// tmp_0 = exp > exp
-																										emit($1->place, ">", $3->place, $$->place, instruction_num);
+																										emit($1->place, ">", $3->place, $$->place, emit_line);
 																									}
 																									else if(typecheck == "Bool"){
 																										$$->type = "Bool";
@@ -919,19 +920,20 @@ relational_expression
 
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								  	yyerror("Cannot apply <= operator on these variables.");
 																								}
 																								else{
 																									if(typecheck == "int"){
 																										$$->type = "int";
 
-																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = ir_variable($$->type, offset, curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0 , find_entry( scope_st, tmp_0));
+																										$$->place = {tmp_0, tempen0};
 																										// tmp_0 = exp <= exp
-																										emit($1->place, "<=", $3->place, $$->place, instruction_num);
+																										emit($1->place, "<=", $3->place, $$->place, emit_line);
 																									}
 																									else if(typecheck == "Bool"){
 																										$$->type = "Bool";
@@ -951,19 +953,20 @@ relational_expression
 
 																								string typecheck = relational_expr($1->type,$3->type);
 																								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot apply >= operator on these variables.");
 																								}
 																								else{
 																									if( typecheck == "int"){
 																										$$->type = "int";
 
-																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = ir_variable($$->type, offset, curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));																												
+																										$$->place = {tmp_0, tempen0};																												
 																										// tmp_0 = exp >= exp
-																										emit($1->place , ">=" ,$3->place , $$->place , instruction_num);
+																										emit($1->place , ">=" ,$3->place , $$->place , emit_line);
 
 																									}
 																									else if(typecheck == "Bool"){
@@ -989,19 +992,20 @@ equality_expression
 
 																								string typecheck = equality_expr($1->type,$3->type);
 																								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								    yyerror("Cannot apply == operator on these variables.");
 																								}
 																								else{
 																									if(typecheck == "True"){
 																										$$->type = "int";
 
-																										string tmp_0 = create_tmp_var($$->type ,offset, curr_scope);
+																										string tmp_0 = ir_variable($$->type ,offset, curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0 , find_entry(scope_st, tmp_0) );
+																										$$->place = {tmp_0 , tempen0 };
 																										// tmp_0 = exp == exp
-																										emit($1->place, "==", $3->place, $$->place, instruction_num);
+																										emit($1->place, "==", $3->place, $$->place, emit_line);
 
 																									}
 																									else if( typecheck == "true"){
@@ -1020,19 +1024,20 @@ equality_expression
 
 																								string typecheck = equality_expr($1->type, $3->type);
 																								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																								  	yyerror("Cannot apply != operator on these variables.");
 																								}
 																								else{
 																									if( typecheck == "True"){
 																										$$->type="int";
 
-																										string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
+																										string tmp_0 = ir_variable($$->type, offset, curr_scope);
+																										tEntry* tempen0 = lookup(scope_st, tmp_0);
 																										align_offset( getSize($$->type) );
 
-																										$$->place = create_opd(tmp_0,find_entry( scope_st, tmp_0));																												
+																										$$->place = {tmp_0,tempen0};																												
 																										// tmp_0 = exp == exp
-																										emit( $1->place, "!=", $3->place, $$->place, instruction_num);	
+																										emit( $1->place, "!=", $3->place, $$->place, emit_line);	
 																									}
 																									else if( typecheck == "true"){
 																										yyerror("Comparison between pointer and integer");
@@ -1054,19 +1059,20 @@ and_expression
 
 																								string typecheck = bitwise_expr($1->type,$3->type);
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Invalid type for '&' expression");
 																								}
 																								
 																								else if(typecheck=="true"){
 																									$$->type = "int";
 
-																									string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
+																									string tmp_0 = ir_variable($$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp & exp	
-																									emit($1->place, "&", $3->place, $$->place, instruction_num);
+																									emit($1->place, "&", $3->place, $$->place, emit_line);
 																								}
 
 																								else{
@@ -1085,17 +1091,19 @@ exclusive_or_expression
 
 																								string typecheck = bitwise_expr($1->type, $3->type);
 																								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Invalid type for '^' expression");
 																								}
 																								else if( typecheck == "true"){
 																									$$->type = "int";
 
-																									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																									string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
-																									$$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
+
+																									$$->place = { tmp_0, tempen0};																												
 																									// tmp_0 = exp ^ exp
-																									emit($1->place,"^",$3->place,$$->place,instruction_num);
+																									emit($1->place,"^",$3->place,$$->place,emit_line);
 																								}	
 																								else {
 																									yyerror("Cannot compute xor operator.");
@@ -1113,29 +1121,31 @@ inclusive_or_expression
 
 																								string typecheck = bitwise_expr($1->type, $3->type);
 																								if( typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Invalid type for '|' expression");
 																								}
 																								else if( typecheck == "true"){
 																		  							$$->type = "int";
 							
-																		                            string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																		                            string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																		                            align_offset( getSize($$->type) );
 
-																		                            $$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
+																		                            $$->place = {tmp_0, tempen0};																												
 																									// tmp_0 = exp | exp 	
-																		                            emit($1->place,"|",$3->place,$$->place,instruction_num);
+																		                            emit($1->place, "|" , $3->place, $$->place, emit_line);
 																
 																	                            }
 																								else if(typecheck == "True"){
 																									$$->type = "long long";
 
-																									string tmp_0 = create_tmp_var($$->type, offset, curr_scope);
+																									string tmp_0 = ir_variable($$->type, offset, curr_scope);
+																									tEntry* tempen0 = lookup(scope_st, tmp_0);
 																									align_offset( getSize($$->type) );
 
-																									$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));
+																									$$->place = {tmp_0, tempen0};
 																									// tmp_0 = exp | exp	
-																									emit( $1->place, "|", $3->place, $$->place, instruction_num);
+																									emit( $1->place, "|", $3->place, $$->place, emit_line);
 																								}
 																								else{
 																									yyerror("Cannot compute | operation.");
@@ -1153,36 +1163,37 @@ logical_and_expression
 																									$$->init = 1;
 
 																								backpatch( $1->truelist, $3);
-																								$4->falselist = makelist( instruction_num);
+																								$4->falselist = makelist( emit_line);
 
 																								// if tmp_1 == tmp_2 goto ___
-																								emit(opd("if"),"==",$4->place,opd("goto"),-1);
+																								emit({string("if"), NULL} ,"==", $4->place, {string("goto"), NULL},-1);
 
-																								$4->truelist = makelist( instruction_num);
+																								$4->truelist = makelist( emit_line);
 
 																								// goto ____
-																								emit(opd("goto"),"",opd(""),opd(""),-1);
+																								emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL},-1);
 
-																								string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																								string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																								tEntry* tempen0 = lookup(scope_st, tmp_0);
 																								align_offset( getSize($$->type) );
 
-																								$$->place = create_opd(tmp_0 ,find_entry(scope_st, tmp_0));																												
+																								$$->place = {tmp_0, tempen0};																												
 
-																								backpatch($4->truelist, instruction_num); 
+																								backpatch($4->truelist, emit_line); 
 																								// tmp_0 = exp
-																								emit(opd(""),"", opd("1") , $$->place, instruction_num);
+																								emit({ "", NULL},"", {string("1"), NULL} , $$->place, emit_line);
 
-																								$$->truelist = makelist(instruction_num);
+																								$$->truelist = makelist(emit_line);
 																								// goto ___
-																								emit(opd("goto"),"", opd(""), opd(""),-1);
+																								emit({string("goto"), NULL} ,"", { "", NULL} , { "", NULL},-1);
 
-																								backpatch(merging($1->falselist ,$4->falselist), instruction_num);  
+																								backpatch(merging($1->falselist ,$4->falselist), emit_line);  
 																								// tmp_0 = 0
-																								emit(opd(""),"",opd("0") , $$->place, instruction_num);
+																								emit({ "", NULL},"",{"0", NULL} , $$->place, emit_line);
 																								
-																								$$->falselist = makelist( instruction_num);
+																								$$->falselist = makelist( emit_line);
 																								// goto ___
-																								emit( opd("goto"),"", opd(""), opd(""),-1);	
+																								emit( {string("goto"), NULL},"", { "", NULL}, { "", NULL},-1);	
 																  							}
 	;
 
@@ -1190,13 +1201,13 @@ new_and
 	: logical_and_expression  {
 										$$=$1;
 	
-										$$->falselist=merging(makelist(instruction_num),$1->falselist);
+										$$->falselist=merging(makelist(emit_line),$1->falselist);
 										// if tmp_1 == tmp_2 goto ___
-										emit(opd("if"),"==",$1->place,opd("goto"),-1);
+										emit({string("if"), NULL},"==", $1->place ,{string("goto"), NULL},-1);
 														
-										$$->truelist=merging(makelist(instruction_num),$1->truelist);
+										$$->truelist = merging( makelist(emit_line) , $1->truelist );
 										// goto ____
-										emit(opd("goto"),"",opd(""),opd(""),-1);		
+										emit( {string("goto"), NULL} , "" ,{ "", NULL}, { "", NULL},-1);		
 
 									}	
 	;
@@ -1204,7 +1215,7 @@ new_and
 // M
 M
 	: %empty 				{	
-								$$ = instruction_num;
+								$$ = emit_line;
 							}
 	;
 
@@ -1220,40 +1231,42 @@ logical_or_expression
 																							backpatch($1->falselist, $3);
 					
 																							if( $4->falselist.size() == 0)
-																								$4->falselist=makelist(instruction_num);
+																								$4->falselist = makelist(emit_line);
 																							else
-																								backpatch($4->falselist, instruction_num);
+																								backpatch($4->falselist , emit_line);
 																							
 																							// if tmp_1 == tmp_2 goto ___
-																							emit(opd("if"),"==",$4->place,opd("goto"),-1);
+																							emit({string("if"), NULL},"==" ,$4->place ,{string("goto"), NULL} ,-1);
 					
 																							if( $4->truelist.size() == 0)
-																								$4->truelist=makelist(instruction_num);
+																								$4->truelist=makelist(emit_line);
 																							else
-																								backpatch($4->truelist, instruction_num);
+																								backpatch($4->truelist, emit_line);
 																							
 																							// goto ___
-																							emit(opd("goto"),"",opd(""),opd(""),-1);
+																							emit({string("goto"), NULL},"" ,{ "", NULL} ,{ "", NULL},-1);
 																							
-																							string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																							string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																							tEntry* tempen0 = lookup(scope_st, tmp_0);
 																							align_offset( getSize($$->type) );
-																							$$->place = create_opd( tmp_0 ,find_entry(scope_st, tmp_0));																												
-																							
-																							backpatch($4->falselist, instruction_num);
-																							// tmp_0 = 0
-																							emit( opd(""), "", opd("0") , $$->place, instruction_num);
 
-																							$$->falselist = makelist(instruction_num);
+																							$$->place ={tmp_0 ,tempen0};																												
+																							
+																							backpatch($4->falselist, emit_line);
+																							// tmp_0 = 0
+																							emit( { "", NULL}, "", {"0", NULL} , $$->place, emit_line);
+
+																							$$->falselist = makelist(emit_line);
 																							// goto __
-																							emit(opd("goto"),"",opd(""),opd(""),-1);
+																							emit({string("goto"), NULL},"",{ "", NULL}, { "", NULL},-1);
 																							
-																							backpatch( merging($1->truelist, $4->truelist) , instruction_num);  
+																							backpatch( merging($1->truelist, $4->truelist) , emit_line);  
 																							// tmp_0 = 1
-																							emit(opd(""),"",opd("1") , $$->place, instruction_num);
+																							emit({ "", NULL},"",{string("1"), NULL} , $$->place, emit_line);
 																							
-																							$$->truelist = makelist( instruction_num);
+																							$$->truelist = makelist( emit_line);
 																							// goto __ 
-																							emit(opd("goto"),"",opd(""),opd(""),-1);
+																							emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL},-1);
 																						}
 	;					
 					
@@ -1261,13 +1274,13 @@ new_or
 	: logical_or_expression		{					
 									$$=$1;					
 					
-									$$->falselist= merging( makelist(instruction_num) , $1->falselist);
+									$$->falselist= merging( makelist(emit_line) , $1->falselist);
 									// if tmp_0 == 0 goto ___
-									emit(opd("if"), "==", $1->place, opd("goto"), -1);
+									emit({string("if"), NULL}, "==", $1->place, {string("goto"), NULL}, -1);
 									
-									$$->truelist = merging( makelist(instruction_num), $1->truelist);
+									$$->truelist = merging( makelist(emit_line), $1->truelist);
 									// goto ___
-									emit(opd("goto"), "", opd(""), opd(""), -1);		
+									emit({string("goto"), NULL}, "", { "", NULL}, { "", NULL}, -1);		
 								}
 	;
 
@@ -1282,7 +1295,7 @@ conditional_expression
 
 																								string typecheck = conditional_expr($1->type, $8->type);
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("The types are not compatible for conditional expression.");
 																								}
 																								else{
@@ -1291,21 +1304,23 @@ conditional_expression
 																									backpatch( $1->truelist, $3);
 																						         	backpatch( $1->falselist, $7);
 																						         	
-																						         	string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																						         	string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																									 tEntry* tempen0 = lookup(scope_st, tmp_0);
 																						         	align_offset( getSize($$->type) );
-																						         	$$->place = create_opd( tmp_0 , find_entry(scope_st, tmp_0));	
+
+																						         	$$->place = {tmp_0, tempen0};	
 																						         	
 																									// tmp_0 = tmp_1
-																						         	emit(opd(""),"",$8->place , $$->place, instruction_num);
+																						         	emit({ "", NULL},"", $8->place , $$->place, emit_line);
 																									// goto ___
-																						         	emit(opd("goto"),"",opd(""),opd(""),instruction_num+2);
-																						         	backpatch( $8->truelist,  instruction_num + 2);					
-																						         	backpatch( $8->falselist, instruction_num + 2);						
-																						         	backpatch( $4->truelist , $5->instruction_number);					
-																						         	backpatch( $4->falselist , $5->instruction_number);					
-																						         	backpatch( $5->nextlist, instruction_num);
+																						         	emit({string("goto"), NULL},"", { "", NULL}, { "", NULL}, emit_line + 2);
+																						         	backpatch( $8->truelist,  emit_line + 2);					
+																						         	backpatch( $8->falselist, emit_line + 2);						
+																						         	backpatch( $4->truelist , $5->line_used);					
+																						         	backpatch( $4->falselist , $5->line_used);					
+																						         	backpatch( $5->nextlist, emit_line);
 																									// tmp_0 = tmp_1
-																						         	emit(opd(""),"",$4->place , $$->place, instruction_num);
+																						         	emit({ "", NULL}, "", $4->place , $$->place, emit_line);
 																						        }
 																							}   
 	;
@@ -1313,11 +1328,11 @@ conditional_expression
 N
 	:%empty 			{
 							$$ = new node();
-							$$->instruction_number = instruction_num;														
-							$$->nextlist = makelist(instruction_num);
+							$$->line_used = emit_line;														
+							$$->nextlist = makelist(emit_line);
 							
 							// goto ___
-							emit(opd("goto"),"",opd(""),opd(""),-1);
+							emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL},-1);
 						}
 	;
 
@@ -1331,7 +1346,7 @@ assignment_expression
 																									string typecheck = assignment_expr($1->type , $3->type, $2->s);
 
 																									if( typecheck == ""){
-																										$$->type = "incorrect";
+																										$$->type = "NULLTYPE";
 																										yyerror("Cannot assign type " + $3->type + " to " + $1->type);
 																									}
 																									else{
@@ -1339,44 +1354,46 @@ assignment_expression
 																											$$->type = $1->type;
 
 																											if($2->s == "="){
-																												backpatch( $3->falselist, instruction_num);
-																												backpatch( $3->truelist, instruction_num);
+																												backpatch( $3->falselist, emit_line);
+																												backpatch( $3->truelist, emit_line);
 																												
 																												if($1->flag == 1){
 																													// tmp_0 = **tmp_1
-																													emit(opd("*"),"",$3->place,$1->place,instruction_num);
+																													emit({"*", NULL}, "", $3->place, $1->place, emit_line);
 																												}
 																												else if($3->flag == 1){
 																													// tmp_0 = *tmp_1
-																													emit(opd(""),"*",$3->place,$1->place,instruction_num);
+																													emit({ "", NULL}, "*", $3->place, $1->place, emit_line);
 																												}
 																												else{
 																													// tmp_0 = tmp_1
-																													emit(opd(""),"",$3->place,$1->place,instruction_num);
+																													emit( { "", NULL},"", $3->place, $1->place, emit_line);
 																												} 
 																											}
 																											else{
-																						  						string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
+																						  						string tmp_0 = ir_variable( $$->type, offset, curr_scope);
+																												tEntry* tempen0 = lookup(scope_st, tmp_0);
 																						  						align_offset( getSize($$->type) );
 
-																						  						$$->place = create_opd( tmp_0, find_entry(scope_st, tmp_0));
+																						  						$$->place = {tmp_0, tempen0};
 
-																						  						backpatch( $3->falselist, instruction_num);
-																						  						backpatch( $3->truelist, instruction_num);
+																						  						backpatch( $3->falselist, emit_line);
+																						  						backpatch( $3->truelist, emit_line);
 
-																						  						string tmp_1 = create_tmp_var( $$->type,offset,curr_scope);
+																						  						string tmp_1 = ir_variable( $$->type,offset,curr_scope);
+																												tEntry* tempen1 = lookup(scope_st, tmp_1);
 																						  						align_offset( getSize($$->type) );
 
-																						  						opd tmp_opd = create_opd(tmp_1 ,find_entry(scope_st, tmp_1));
+																						  						pair<string, tEntry*> tmp_opd = {tmp_1 , tempen0};
 
 																						  						string str="";
 																						  						str = str + $2->s[0] ;
 																						  						if( $2->s[1] != '=')
 																												  	str = str+$2->s[1];
 
-																						  						emit( $1->place , str , $3->place, $$->place, instruction_num);
+																						  						emit( $1->place , str , $3->place, $$->place, emit_line);
 																												// tmp_0 = tmp_1
-																						  						emit(opd(""), "", $$->place, $1->place ,instruction_num);
+																						  						emit({ "", NULL}, "", $$->place, $1->place ,emit_line);
 																				                          	}
 
 																										}		
@@ -1384,9 +1401,10 @@ assignment_expression
 																											$$->type = $1->type;
 																											yyerror("Assignment with incompatible pointer type");
 																										}	
+
 																										if($1->isidentifier == 1){
 																											if($3->init == 1){
-																												tEntry* entry = find_entry(scope_st, $1->s);
+																												tEntry* entry = lookup(scope_st, $1->s);
 																												if(entry){
 																													entry->init = 1;
 																												}
@@ -1444,14 +1462,9 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers typevar_NULL ';' 														{ $$ = $1; }
-	| declaration_specifiers init_declarator_list typevar_NULL ';'									{ $$ = new_2_node("Declaration", $1, $2); }
+	: declaration_specifiers { type_var = ""; } ';' 														{ $$ = $1; }
+	| declaration_specifiers init_declarator_list { type_var = ""; } ';'									{ $$ = new_2_node("Declaration", $1, $2); }
 	;
-
-typevar_NULL
-	: %empty 	{ type_var = ""; }
-;
-
 
 declaration_specifiers
 	: storage_class_specifier																{ $$ = $1; }
@@ -1470,8 +1483,8 @@ init_declarator
 																									$$ = $1;
 																									if( check_type($1->type) ){
 																										// cout << " if" << endl;
-																										if( (find_entry(scope_st, $1->key)) ){
-																											if((find_entry(scope_st, $1->key))->scope ==  curr_scope){
+																										if( (lookup(scope_st, $1->key)) ){
+																											if((lookup(scope_st, $1->key))->scope ==  curr_scope){
 																												yyerror($1->key + " is redeclared.");
 																											}
 																											else{
@@ -1485,12 +1498,12 @@ init_declarator
 																									    }
 																							     	}
 																									else{
-																										$$->type = "incorrect";
+																										$$->type = "NULLTYPE";
 																										yyerror("Invalid type specification.");
 																									}
-																									$$->place = create_opd($1->key,find_entry(scope_st,$1->key));																												
+																									$$->place = {$1->key,lookup(scope_st,$1->key)};																												
 																									// tmp_0 = 
-																									emit(opd(""),"",opd(""),$$->place,instruction_num);
+																									emit( { "", NULL},"", { "", NULL}, $$->place , emit_line);
 
 																							}
 	| declarator '=' initializer   															{
@@ -1498,7 +1511,7 @@ init_declarator
 
 																								string typecheck = assignment_expr($1->type, $3->type, "=");
 																								if(typecheck == ""){
-																									$$->type = "incorrect";
+																									$$->type = "NULLTYPE";
 																									yyerror("Cannot assign type " + $3->type + " to " + $1->type);
 																								}
 																								else{			
@@ -1508,29 +1521,29 @@ init_declarator
 																										$$->init = $3->init;
 																										$1->init = $3->init;
 
-																										if( !(find_entry(scope_st,$1->key)) ){
+																										if( !(lookup(scope_st,$1->key)) ){
 																											insert_entry($1->key ,$1->type ,1 ,$1->size ,offset ,curr_scope);
 																											align_offset($1->size);
 
-																											$$->place = create_opd($1->key ,find_entry(scope_st , $1->key));																												
+																											$$->place = {$1->key ,lookup(scope_st , $1->key)};																												
 																											// tmp_0 = tmp_1
-																											emit(opd(""),"",$3->place,$$->place,instruction_num);
+																											emit({ "", NULL},"", $3->place , $$->place , emit_line);
 																										}
-																										else if ((find_entry(scope_st,$1->key))->scope == curr_scope){
+																										else if ((lookup(scope_st,$1->key))->scope == curr_scope){
 																											yyerror($1->key + " is redeclared.");
 																										}
 																										else{
 																											insert_entry($1->key ,$1->type ,1 ,$1->size ,offset ,curr_scope);
 																											align_offset($1->size);
 
-																											$$->place = create_opd($1->key ,find_entry(scope_st , $1->key));																												
+																											$$->place = {$1->key , lookup(scope_st , $1->key)};																												
 																											// tmp_0 = tmp_1
-																											emit(opd(""),"",$3->place,$$->place,instruction_num);
+																											emit({ "", NULL},"", $3->place, $$->place, emit_line);
 																										}
 																										
 																									}
 																									else{
-																										$$->type = "incorrect";
+																										$$->type = "NULLTYPE";
 																										yyerror("Invalid type specification.");
 																									}
 																								}
@@ -1623,7 +1636,7 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list typevar_NULL ';' 									{
+	: specifier_qualifier_list struct_declarator_list { type_var = ""; } ';' 									{
 																									$$ = new_2_node("struct_declaration",$1,$2);
 																									$$->size = $2->size;
 																								}
@@ -1667,12 +1680,12 @@ declarator
 																									$$->key = $2->key;
 																									$$->size = getSize($$->type);
 
-																									$$->place = opd($2->s);
+																									$$->place = {$2->s, NULL};
 																								}	
 
 	| direct_declarator																			{
 																									$$ = $1;
-																									$$->place = opd($1->s);
+																									$$->place = {$1->s, NULL};
 																								}
 	;
 
@@ -1683,7 +1696,7 @@ direct_declarator
 																									$$->key = $1;
 																									$$->size = getSize($$->type);
 
-																									$$->place = opd($1);
+																									$$->place = {$1, NULL};
 																								}											
 	| '(' declarator ')'																		{
 																									$$ = new_1_node("()", $2);
@@ -1702,9 +1715,8 @@ direct_declarator
 																									$$->type = $1->type;
 																									$$->key = $1->s;
 																									$$->size = getSize($$->type);
-																									$$->size = getSize($$->type);
 																								}	
-	| direct_declarator '(' B2 parameter_type_list ')'											{
+	| direct_declarator '(' {type_var = ""; offset = 0;} parameter_type_list ')'											{
 																									$$ = new_2_node("()",$1,$4);
 																									$$->type = $1->type;
 																									$$->key = $1->s;
@@ -1722,9 +1734,9 @@ direct_declarator
 																									}
 																									
 																									insert_entry($1->key , type_var, 0, $1->size, -1, 0);
-																									$1->place = create_opd($1->key, find_entry(scope_st, $1->key));
+																									$1->place = {$1->key, lookup(scope_st, $1->key)};
 																									// func name
-																									emit(opd("func"),"",$1->place,opd(""),-1);
+																									emit({string("func"), NULL},"", $1->place, { "", NULL},-1);
 
 																									for(int i=0;i<args.size();i++){
 																										const char delim1 = ' ';
@@ -1745,20 +1757,20 @@ direct_declarator
 																												t += " " + arg[j];
 																										}
 																										int size = getSize(t);																
-																										insert_entry(arg[arg.size()-1], t, 1, size, offset, num_scopes+1);
-																										align_offset( size);
+																										insert_entry( arg[arg.size()-1], t, 1, size, offset, num_scopes + 1);
+																										align_offset( size );
 																		
-																										opd opd1 = create_opd(arg[arg.size()-1], find_entry(scope_st, arg[arg.size()-1]));
+																										pair<string, tEntry*> opd1 = {arg[arg.size()-1], lookup(scope_st, arg[arg.size()-1])};
 																										
-																										emit(opd(""), "", opd(""), opd1, instruction_num);
+																										emit({ "", NULL}, "", { "", NULL}, opd1, emit_line);
 																									}			
 																									
 																									func_params = "";
 																									insert_entry($1->key, type_var, 0, $1->size, -1, 0);
-    																								entry_map.insert( make_pair(num_scopes+1 , $1->key) );
+    																								entry_map.insert( make_pair(num_scopes + 1 , $1->key) );
 																								}
 
-	| direct_declarator '(' B2 identifier_list ')'												{
+	| direct_declarator '(' {type_var = ""; offset = 0;} identifier_list ')'												{
 																									$$ = new_2_node("()",$1,$4);
 
 																									$$->type = $1->type;
@@ -1770,11 +1782,11 @@ direct_declarator
 																									insert_entry($1->key , type_var, 0, $1->size, -1, 0);
     																								entry_map.insert(make_pair( num_scopes + 1, $1->key));
 
-																									$1->place = create_opd($1->key, find_entry(scope_st, $1->key));
+																									$1->place = {$1->key, lookup(scope_st, $1->key)};
 																									// func name
-																									emit( opd("func"), "", $1->place, opd(""), -1);
+																									emit( {string("func"), NULL}, "", $1->place, { "", NULL}, -1);
 																								}	
-	| direct_declarator '(' B2 ')'																{
+	| direct_declarator '(' {type_var = ""; offset = 0;} ')'																{
 																									$$ = new_1_node("()", $1);
 																									$$->type = $1->type;
 																									$$->key = $1->s;
@@ -1782,20 +1794,14 @@ direct_declarator
 																									FUNC_PARAM.insert( make_pair( $1->type+ " " + $1->key ,func_params));
 																									
 																									func_params="";
-																									insert_entry($1->key,$1->type,0,$1->size,-1,0);
-    																								entry_map.insert(make_pair(num_scopes+1,$1->key));
+																									insert_entry($1->key, $1->type, 0, $1->size ,-1, 0);
+    																								entry_map.insert(make_pair(num_scopes + 1 , $1->key));
 
-																									$1->place = create_opd($1->key, find_entry(scope_st,$1->key));
+																									$1->place = {$1->key, lookup(scope_st,$1->key)};
 																									// func name
-																									emit(opd("func"),"",$1->place,opd(""),-1);
+																									emit({string("func"), NULL}, "", $1->place, { "", NULL} ,-1);
 																								}	
 	;	
-
-B2
-	: %empty			{
-							type_var = "";
-							offset = 0;
-						}
 
 pointer
 	: '*' 																						{	$$ = new_leaf_node("*");
@@ -1813,11 +1819,7 @@ parameter_type_list
 
 parameter_list
 	: parameter_declaration																		{ $$ = $1; }		
-	| parameter_list k1 parameter_declaration 													{ $$ = new_2_node(",", $1, $3);}
-	;
-
-k1
-	: ','		{type_var="";}
+	| parameter_list ',' {type_var="";} parameter_declaration 													{ $$ = new_2_node(",", $1, $4);}
 	;
 
 parameter_declaration
@@ -1848,7 +1850,7 @@ type_name
 abstract_declarator
 	: pointer      																				{	$$ = $1; }	
 	| direct_abstract_declarator 																{	$$ = $1; }
-	| pointer direct_abstract_declarator 														{	$$ = new_2_node("pointer direct_abstract_declarator", $1, $2); }
+	| pointer direct_abstract_declarator 														{	$$ = new_2_node("pd", $1, $2); }
 	;
 
 direct_abstract_declarator
@@ -1887,95 +1889,33 @@ statement
 	| delete_stmt																				{	$$ = $1;	}
 	;
 
-case
-	:CASE constant_expression 	{
-									$$=$2;
-
-									string tmp_0 = create_tmp_var( $$->type, offset, curr_scope);
-									align_offset(getSize($$->type));
-
-									opd case_opd = create_opd( tmp_0 , find_entry(scope_st, tmp_0) );
-									// case tmp_0																											
-									emit( opd(""),"", $2->place, case_opd, instruction_num);
-									
-									string tmp_1 = create_tmp_var( $$->type , offset,curr_scope);
-									align_offset( getSize($$->type) );
-									$$->place = create_opd(tmp_1 , find_entry(scope_st, tmp_1));
-									
-									// tmp_0 = case - switch
-									emit( case_opd , "-" , switch_opd, $$->place , instruction_num);
-									$$->nextlist = makelist( instruction_num);
-									// if tmp_1 != 0 goto __
-									emit( opd("if"), "!=" , $$->place , opd("goto") ,-1);
-									
-								}
-	;
-
 labeled_statement
-	: IDENTIFIER M ':' statement               													{	
-																									$$ = new_2_node("LABELLED_STATEMENT", new_leaf_node($1), $4);
-																									label_tabel.insert(make_pair($1, $2));
-												
-																									$$->truelist = $4->truelist;
-																									$$->falselist = $4->falselist;
-																									$$->nextlist = $4->nextlist;
-																									$$->continuelist = $4->continuelist;
-																									$$->breaklist = $4->breaklist;
-
-																									$$->place = $4->place;
+	: IDENTIFIER ':' statement               													{	
+																									$$ = new_2_node("LABELLED_STATEMENT", new_leaf_node($1), $3);
+																								
 																								}
-	| case ':' statement 																		{	
-																									$$ = new_2_node("CASE", $1, $3);
-
-																									$$->nextlist = merging($1->nextlist, $3->nextlist);
-																									$$->truelist = $3->truelist;
-																									$$->falselist = $3->falselist;
-																									$$->breaklist = $3->breaklist;
-																									$$->continuelist = $3->continuelist;
-
+	| CASE constant_expression ':' statement 													{	
+																									$$ = new_2_node("CASE", $2, $4);
 																								}
 
-	| DEFAULT ':' statement					 													{	$$ = new_1_node("DEFAULT", $3);
-
-																									$$->nextlist = $3->nextlist;
-																									$$->truelist = $3->truelist;
-																									$$->falselist = $3->falselist;
-																									$$->breaklist = $3->breaklist;
-																									$$->continuelist = $3->continuelist;
+	| DEFAULT ':' statement					 													{	
+																									$$ = new_1_node("DEFAULT", $3);
 																								}
 	;
 	
 compound_statement
 	: '{' '}'																					{	$$ = NULL;	}
-	| A1 statement_list A2																		{	$$ = $2;	}
-	| A1 declaration_list A2																	{	$$ = $2;	}
-	| A1 declaration_list statement_list A2														{	if($2)
-																									{
-																										$$ = new_2_node("INIT_LIST--STATEMENT_LIST", $2, $3);
-																									}
-																									else
-																									{
-																										$$ = new_2_node("compound_statement",$2,$3);
-																									}
-																								}
+	| C1 statement_list C2																		{	$$ = $2;	}
+	| C1 declaration_list C2																	{	$$ = $2;	}
+	| C1 declaration_list statement_list C2														{	$$ = new_2_node("compound statement list", $2, $3);}
 	;
 
-A1
-	: '{'
-																								{
-																									type_var = "";
-																									num_scopes++;
-																									curr_scope = num_scopes;
-																									scope_st.push(curr_scope);
-																								}
+C1
+	: '{' 			{type_var = ""; num_scopes++; curr_scope = num_scopes; scope_st.push(curr_scope);}
 	;
 
-A2
-	: '}'
-																								{
-																									scope_st.pop();
-																									curr_scope = scope_st.top();
-																								}
+C2
+	: '}'			{ scope_st.pop(); curr_scope = scope_st.top();}
 	;
 
 declaration_list
@@ -2023,32 +1963,24 @@ selection_statement
 															$$->nextlist = merging($$->nextlist , $10->nextlist);
 
 															}
-	| SWITCH '(' S2 ')' statement							{
+	| SWITCH '(' expression ')' statement					{
 																$$ = new_2_node("SWITCH-CASE", $3, $5);
-																$$->nextlist=merging($5->nextlist , $5->breaklist);
 															}
 	;
-
-S2
-	: expression 	{
-						$$=$1;
-						switch_opd = $1->place;
-					}
-	;	
 
 E1
 	: expression 		{
 							$$ = $1;
 							
-							$$->truelist = makelist(instruction_num);
+							$$->truelist = makelist(emit_line);
 							$$->truelist = merging($$->truelist,$1->truelist);
 							// if tmp_0 != 0 goto ___
-							emit(opd("if") , "!=" , $1->place , opd("goto") , -1);
+							emit({string("if"), NULL} , "!=" , $1->place , {string("goto"), NULL} , -1);
 																
-							$$->falselist = makelist(instruction_num);
+							$$->falselist = makelist(emit_line);
 							$$->falselist = merging($$->falselist , $1->falselist);
 							// goto ___
-							emit(opd("goto") , "" , opd("") , opd("") , -1);
+							emit({string("goto"), NULL} , "" , { "", NULL} , { "", NULL} , -1);
 						}
 	;
 
@@ -2056,15 +1988,15 @@ E2
 	: expression_statement 		{
 									$$=$1;
 									
-									$$->truelist = makelist(instruction_num);
+									$$->truelist = makelist(emit_line);
 									$$->truelist = merging($$->truelist , $1->truelist);
 									// if tmp_0 != 0 goto ___
-									emit(opd("if") , "!=" , $1->place , opd("goto") , -1);
+									emit({string("if"), NULL} , "!=" , $1->place , {string("goto"), NULL} , -1);
 																		
-									$$->falselist = makelist(instruction_num);
+									$$->falselist = makelist(emit_line);
 									$$->falselist = merging($$->falselist , $1->falselist);
 									// goto ___
-									emit(opd("goto"), "", opd(""), opd(""), -1);
+									emit({string("goto"), NULL}, "", { "", NULL}, { "", NULL}, -1);
 								}
 	;
 
@@ -2083,11 +2015,12 @@ printf_stmt
 	: PRINTF '(' STRING_VAL ')' ';'   															{
 																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), NULL);
 																									// printf stringval
-																									emit(opd("printf"), "", opd($3), opd(""), instruction_num);
+																									emit({string("printf"), NULL}, "", {$3, NULL}, {"", NULL}, emit_line);
 																								}
 	| PRINTF '(' STRING_VAL ',' printf_helper ')' ';'   										{
 																									$$ = new_2_Stringval_node("PRINTF", new_leaf_node($3), $5);
-																									emit(opd("printf"), "", opd($3), opd("0"), instruction_num);
+																									// printf stringval from helpers
+																									emit({string("printf"), NULL}, "", {$3, NULL}, {"0", NULL}, emit_line);
 																								}
 
 printf_helper
@@ -2108,7 +2041,7 @@ printf_helper
 scanf_stmt
 	: SCANF '(' STRING_VAL ',' scanf_helper ')' ';' 											{
 																									$$ = new_2_Stringval_node("SCANF", new_leaf_node($3), $5);
-																									emit(opd("scanf"), "", opd($3), opd("0"), instruction_num);
+																									emit({string("scanf"), NULL}, "", {$3, NULL}, {"0", NULL}, emit_line);
 																								}
 	;
 
@@ -2130,14 +2063,14 @@ iteration_statement
 
 																								$$->nextlist = merging( $4->falselist , $7->breaklist);
 																								// goto ___
-																								emit(opd("goto") , "" , opd("") , opd("") , $2);
+																								emit({string("goto"), NULL} , "" , { "", NULL} , { "", NULL} , $2);
 																							}
 	| DO M statement WHILE '(' M E1 N ')' ';'												{
 																								$$ = new_2_node("DO-WHILE", $3, $7);
 																								
 																								backpatch( $8->nextlist, $2);
 																								backpatch( $3->continuelist, $6);
-																								backpatch( $7->truelist, $8->instruction_number);
+																								backpatch( $7->truelist, $8->line_used);
 
 																								$$->nextlist = merging( $3->breaklist, $7->falselist);
 																								
@@ -2152,7 +2085,7 @@ iteration_statement
 
 																								backpatch($5->truelist,$7);
 																								// goto ____
-																								emit(opd("goto"),"",opd(""),opd(""), $4);
+																								emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL}, $4);
 																							}
 	| FOR '(' expression_statement M E2 M expression N ')' M statement						{
 																								$$ = new_2_node("FOR", new_3_node("CONTROL_STATEMENTS", $3, $5, $7), $11);
@@ -2164,7 +2097,7 @@ iteration_statement
 																								backpatch( $5->truelist , $10);
 																								backpatch( $8->nextlist , $4);
 																								// goto ___
-																								emit( opd("goto") , "" , opd("") , opd(""), $6);
+																								emit( {string("goto"), NULL} , "" , { "", NULL} , { "", NULL}, $6);
 																							}
 	;
 
@@ -2176,7 +2109,7 @@ jump_statement
 									if( label_tabel.find($2) != label_tabel.end()){
 										auto label = label_tabel.find($2);
 										// goto ___
-										emit(opd("goto"), "", opd(""), opd(""), label->second);
+										emit({string("goto"), NULL}, "", { "", NULL}, { "", NULL}, label->second);
 									}
 									else{
 										yyerror("Label does not exist");
@@ -2185,27 +2118,27 @@ jump_statement
 	| CONTINUE ';'				{
 									$$ = new_leaf_node("CONTINUE");
 
-									$$->continuelist=makelist(instruction_num);
+									$$->continuelist=makelist(emit_line);
 									// goto ___
-									emit(opd("goto"),"",opd(""),opd(""),-1);
+									emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL},-1);
 								
 								}
 	| BREAK ';'					{
 									$$ = new_leaf_node("BREAK");
 
-									$$->breaklist=makelist(instruction_num);
+									$$->breaklist=makelist(emit_line);
 									// goto ___
-									emit(opd("goto"),"",opd(""),opd(""),-1);
+									emit({string("goto"), NULL},"",{ "", NULL},{ "", NULL},-1);
 								}
 	| RETURN ';'				{
 									$$ = new_1_node("RETURN", NULL);
 									// return
-									emit(opd("return"),"",opd(""),opd(""),-1);
+									emit({string("return"), NULL},"",{ "", NULL},{ "", NULL},-1);
 								}
 	| RETURN expression ';'		{
 									$$ = new_1_node("RETURN", $2);
 									// return tmp_0
-									emit(opd("return"), "", $2->place, opd(""),-1);
+									emit({string("return"), NULL}, "", $2->place, { "", NULL},-1);
 								}
 	;
 
@@ -2219,7 +2152,7 @@ translation_unit
 	: external_declaration                    													{	$$ = $1; 
 																									type_var = "";
 																								}
-	| translation_unit typevar_NULL external_declaration   			 									{	$$ = new_2_node("<>", $1, $3);
+	| translation_unit { type_var = ""; } external_declaration   			 									{	$$ = new_2_node("<>", $1, $3);
 																									type_var = "";
 																								}
 	;
@@ -2232,7 +2165,7 @@ external_declaration
 	;
 
 external_struct_declaration
-	:	STRUCT S1 typevar_NULL '{' struct_declaration_list '}' ';'   										{
+	:	STRUCT S1 { type_var = ""; } '{' struct_declaration_list '}' ';'   										{
 																									$$ = new_2_node("STRUCT", $2, $5);
 																									$$->size = $5->size;
 																								}
@@ -2255,7 +2188,7 @@ string type_var;
 string struct_name;	// for struct name
 unordered_map <string, sym_table_t*> struct_symbol_tables;
 string func_params;
-vector<opd> parameter_p;
+vector<pair<string, tEntry*>> parameter_p;
 vector<string> printf_helpers;
 vector<string> scanf_helpers;
 string func_args;
@@ -2274,17 +2207,16 @@ sym_table_t *curr;
 long offset=0;
 long struct_offset=0;
 
-int yyerror(const string& s) {
-		cout << "ERROR: Line number " << line << ": " << s << "\n";
+int yyerror(const string& errors) {
+		cout << "ERROR: Line number " << line << ": " << errors << "\n";
        	return 0;
 }
 
 int main(int argc, char *argv[]) 
 {
-
 	FILE* input;
     if (argc != 4) {
-        cout << "Usage from src directory: ./bin/parser <inputfile> -o <.dot file>\n";
+        cout << "Use the command like: ./bin/parser <inputfile> -o <.dot file>\n";
         exit(1);
     }
 
@@ -2298,7 +2230,9 @@ int main(int argc, char *argv[])
 	
 	// starting scope
 	scope_st.push(0);
-	init_symtable();
+	sym_table_t *curr = (&GST);
+    global_scope_table.insert({0, curr});
+	init_bool();
 
 
 	// for writing in dotfile
@@ -2310,16 +2244,9 @@ int main(int argc, char *argv[])
 
 
 	// for dumping symtable
-	dump_symtable();
+	make_symbol_table();
 
-
-	// memory clear
-	FUNC_PARAM.clear();
-	global_scope_table.clear();
-	GST.clear();
-	entry_map.clear();
-
-	dump_emit_list();
+	make_ircode();
 //	print_asm("codegem.asm");
 
     return 0;

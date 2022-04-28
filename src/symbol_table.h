@@ -35,14 +35,14 @@ extern unordered_map<string,int> label_tabel;
 extern string struct_name;
 extern unordered_map<string, sym_table_t *> struct_symbol_tables;
 
-void init_symtable();
-void dump_symtable();
+void init_bool();
+void make_symbol_table();
 sym_table_t *insert_sym_table(int scope);
 tEntry *entry(string key, string type, int init, int size, long offset, int scope);
 tEntry* make_struct_entry(string key, string type, long offset, int size);
 void insert_entry(string key, string type, int init, int size, long offset, int scope);
 void insert_struct_entry(string struct_name, string key, string type, long offset, int size);
-tEntry *find_entry(stack<int> st, string key);
+tEntry *lookup(stack<int> st, string key);
 tEntry *find_struct_entry(string struct_name, string key);
 string find_type(stack<int> st, string key);
 int getSize(string s);

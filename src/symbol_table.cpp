@@ -5,17 +5,14 @@
 
 using namespace std;
  
-// global symbol table initiation
-void init_symtable()
+void init_bool()
 {
-    sym_table_t *curr = (&GST);
-    global_scope_table.insert({0, curr});
     insert_entry("TRUE",        "bool",  1,  4,   1,     0);
     insert_entry("FALSE",       "bool",  1,  4,   1,     0);
 }
 
 //make files
-void dump_symtable()
+void make_symbol_table()
 {
     // symboltable directory
     int dir = system("mkdir -p symtable_dump"); 
@@ -134,7 +131,7 @@ void insert_struct_entry(string struct_name, string key, string type, long offse
 
 
 // find entry in existing symbol table
-tEntry *find_entry(stack<int> s, string key)
+tEntry *lookup(stack<int> s, string key)
 {
     sym_table_t *lookup_table;
 
@@ -185,7 +182,7 @@ tEntry *find_struct_entry(string struct_name, string key)
 // to find type
 string find_type(stack<int> st, string key)
 {
-    tEntry *entry = find_entry(st, key);
+    tEntry *entry = lookup(st, key);
     if (entry == NULL)
         return "";
     else 
